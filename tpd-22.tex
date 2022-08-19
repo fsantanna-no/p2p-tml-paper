@@ -114,6 +114,15 @@ In Section~\ref{sec.conclusion}, ...
 \section{Related Work}
 \label{sec.related}
 
+% docs.google.com/spreadsheets/d/1CpMmEgabJq2XQeTDW_BNCV4JWrcMlELuaEjDtw7kwg0/
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{table}
+  \caption{
+    \label{fig.table}
+  }
+\end{figure}
+
 \begin{figure*}[t]
   \centering
   \includegraphics[width=\linewidth]{algos}
@@ -124,8 +133,8 @@ In Section~\ref{sec.conclusion}, ...
 
 In this section, we revisit existing solutions for symmetric distributed
 applications.
-We focus on (i) how the network is organized, (ii) how events are propagated,
-and (iii) how global time is determined.
+We focus on (i) how the network is organized, (ii) how global time is
+determined, and (iii) how events are propagated.
 Figure~\ref{fig.table} compares selected works regarding these aspects.
 
 Croquet%
@@ -174,11 +183,11 @@ using only deterministic and stateless calls.
 This way, it is guaranteed that all clients reach the same state, going
 through bit-identical steps.
 
-An antagonistic approach to computing a series of event occurrences
-deterministically, is to model the application data structures with
-conflict-free replicated data types (CRDTs)~\cite{TODO}.
-CRDTs must be designed in such a way that all operations are commutative, so
-that the order in which they are applied does not affect the final outcome.
+An antagonistic approach to deterministic reactions to events is to model the
+application data structures with conflict-free replicated data types
+(CRDTs)~\cite{TODO}.
+CRDTs are designed in such a way that all operations are commutative, so that
+the order in which they are applied does not affect the final outcome.
 %
 As detailed in Figure~\ref{fig.algos}, peers can communicate operations
 directly to each other with no central authority.
@@ -199,7 +208,7 @@ and do not support real-time consensus among peers.
 Automerge~\cite{TODO} along with its accompanying Hypermerge peer-to-peer
 infrastructure is an example of an implementation of this approach.
 
-
+In this work, we try to .
 
 - offline, local first
 - DAG, no consensus, partial order
