@@ -1,0 +1,263 @@
+\documentclass[10pt,journal,compsoc]{IEEEtran}
+
+\usepackage{verbatim}
+\usepackage{url}
+\usepackage{graphicx}
+
+\usepackage{xspace}
+\newcommand{\FC}       {Freechains\xspace}
+\newcommand{\reps}     {\emph{reps}\xspace}
+\newcommand{\onerep}   {\emph{1~rep}\xspace}
+\newcommand{\nreps}[1] {\emph{#1~reps\xspace}}
+\newcommand{\code}[1]  {\texttt{\footnotesize{#1}}}
+\newcommand{\Xon} {$1{\rightarrow}N$\xspace}
+\newcommand{\Xno} {$1{\leftarrow}N$\xspace}
+\newcommand{\Xnn} {$N{\leftrightarrow}N$\xspace}
+\newcommand{\Xoo} {$1{\leftrightarrow}1$\xspace}
+\newcommand{\Xo}  {$1{\hookleftarrow}$\xspace}
+
+\renewcommand{\theenumi}{\alph{enumi}}
+
+\hyphenation{off-line}
+
+\begin{document}
+
+\title{
+    Symmetric Peer-to-Peer Applications
+}
+
+\author{
+    Francisco Sant'Anna~\IEEEmembership{Department of Computer Science, Rio de Janeiro State University}
+}
+
+\IEEEtitleabstractindextext{%
+\begin{abstract}
+In multi-node collaborative applications, users can interact asynchronously
+and share the exact same experience remotely.
+%
+In this work, we propose a middleware for \emph{symmetric peer-to-peer
+applications} in which decentralized instances can broadcast asynchronous
+events and yet conform to identical behavior.
+%
+Nodes are allowed to join and leave the network at any time.
+Application developers must adhere to a restricted API, which is
+deterministic, stateless, and only supports pre-allocated memory.
+%
+The middleware is responsible for synchronizing the events in a global shared
+timeline across the network.
+Based on memory snapshots and deterministic simulation, a ``time machine''
+rolls back and resynchronizes the state of conflicting nodes.
+%
+TODO: application, results
+\end{abstract}
+
+\begin{IEEEkeywords}
+collaboration, determinism, peer-to-peer, time machine
+\end{IEEEkeywords}}
+
+\maketitle
+
+% TOTAL: 12 pages
+
+\section{Introduction}
+\label{sec.introduction}
+
+Collaborative networked applications allow multiple users to interact
+remotely and yet share the same experience in real time.
+Examples of such \emph{symmetric distributed applications}~\cite{gals}
+are shared documents, watch parties, and multi-player games.
+%
+In order to reproduce the exact behavior in multiple devices, the application
+must be able to synchronize its time and execution across the network.
+In addition, since users can interact asynchronously with the application,
+event occurrences must somehow be synchronized back across devices.
+
+A common approach towards symmetric applications is to introduce a middleware
+to orchestrate events and time in the network~\cite{gals,croquet}.
+Applications developers rely on middleware primitives to trigger events, which
+are intercepted and synchronized in a global shared timeline across the
+network.
+Developers must also restrict themselves to deterministic and stateless calls
+only, such that execution can be equally reproduced in all nodes according to
+the shared timeline.
+However, current solutions depend on a central server to interconnect network
+nodes and determine the shared timeline.
+
+In this work, we propose \emph{symmetric peer-to-peer applications}, which
+do not rely on central servers for coordination.
+Nodes in the application form a dynamic peer-to-peer network and communicate
+only with their neighbours directly.
+Events are flooded in the network and are triggered locally with a small
+delay to cope with latency.
+Our main contribution is a time machine that can rollback nodes to a previous
+state to apply events received out of order or too late.
+
+TODO: application, results
+
+In Section~\ref{sec.related}, we revisit existing solutions for symmetric
+distributed applications.
+In Section~\ref{sec.tml}, we detail our proposed middleware.
+In Section~\ref{sec.app}, ...
+In Section~\ref{sec.eval}, ...
+In Section~\ref{sec.conclusion}, ...
+
+- assumptions
+    - correct (non-malicious) nodes
+
+- local first
+- p2p
+- less restrictive (compared to CRDTs)
+- semantic events
+    - limitation b/c of rollbacks
+    - features b/c of network traffic
+
+\section{Related Work}
+\label{sec.related}
+
+In this section, we revisit existing solutions for symmetric distributed
+applications.
+We focus on (i) how the network is organized, (ii) how events are propagated,
+and (iii) how global time is determined.
+Figure~\ref{fig.related} compares selected works regarding these aspects.
+
+Croquet%
+\footnote{Croquet.io: https://croquet.io/}~\cite{TODO} guarantees
+bit-identical real-time behavior for every user in a collaborative
+distributed environment.
+%
+As illustrated in Figure~\ref{fig.croquet}, a centralized \emph{reflector}
+issues periodic ticks, such that all nodes in the network advance together
+according to a synchronized global shared clock.
+If an user generates an event, it is delayed and sent back to the reflector,
+which broadcasts the event in the next tick, which all nodes apply in sync
+(including the originating node).
+%
+Croquet takes periodic snapshots of the whole application state in order to
+support late joins to a running session.
+The new node just needs to restore the latest snapshot and simulate the
+remaining events to reach the current running state.
+%
+As indicated in Figure~\ref{fig.related}, Croquet relies on a centralized
+network, in which nodes advance in sync, and in which event outcomes depend
+on the originating node to be online.
+
+GALS~\cite{TODO} shares the same goals with Croquet, but with some tradeoffs,
+mostly favoring clients with slow connections.
+As illustrated in Figure~\ref{fig.gals}, instead of advancing ticks in sync
+with the server, clients have their own local clocks.
+Also, event generation is delayed dynamically according to the slowest client.
+%
+On the one hand, ticks do not generate any traffic and clients have smooth
+frame transitions, even those with poor connections.
+On the other hand, event generation requires two round trips to the server and
+clients may experience occasional freezes.
+The syncing protocol also requires bookkeeping to deal with clock drifts and
+client disconnections.
+%
+As indicated in Figure~\ref{fig.related}, GALS relies on a centralized
+network, in which nodes advance independently, and in which event outcomes
+depend on the originating node to be online.
+
+In both solutions, the application advances in real time, with a total order
+among events, which is determined by a centralized server that must be
+permanently online.
+
+An antagonistic approach is
+
+- two strong restrictions:
+   - very restrictive API
+   - not real time animations b/c no consensus on timestamps
+
+
+- offline, local first
+- DAG, no consensus, partial order
+    - branches in parallel w/ T,T+d not required to be applied in order
+
+- all still deterministic, stateless
+
+
+architecture and dy-
+namic programming environment with a synchronization
+protocol called TeaTime, which more recently became a prod-
+uct8 . Croquet uses a similar centralized architecture to our
+work, but takes advantage of the cloud to place the server as
+close to clients as possible for better performance. In contrast
+to our work, Croquet relies on the server to issue tick events
+to clients, taking full control over the timeline. The server
+also timestamps events coming from the clients and redirect
+them to all participants. This results in a simpler protocol
+that supports joins and leaves transparently, and does not
+require roundtrips to determine timestamps. However, since
+all tick messages need to be transmitted over the network,
+the FPS rate of applications is proportional to the network
+latency. For instance, a latency of 100ms supports at most 10
+FPS. The transmission of ticks at higher FPS rates also incur
+in higher network traffic and server load. Another distinc-
+tion between the protocols is that Croquet favors instances
+with better latency, which observe optimal experience. In
+contrast, our protocol adjusts event latency dynamically to
+accommodate the slower instance. In addition, instances ex-
+ecute at the same tick rate respecting local times, regardless
+of network latency.
+
+Croquet OS is a.
+- centralized
+    - synchronous
+        - croquet
+	- PALS
+    - asynchronous
+        - gals
+- decentralized
+    - CRDTs (asynchronous) (not realtime) (pause would not be bit identical)
+    - rollback (async)
+
+- local-first + CRDTs + pushpin
+
+- time machine
+    - paper que eu achei ha um tempo
+    - braid
+
+Regarding the structure of messages, append-only Merkle~DAGs have been proposed
+as self-certified archives, and as CRDTs that provide strong eventual
+consistency~\cite{fed.matrix,p2p.byz}.
+However, when these DAGs are open to permissionless writes, they are subject to
+abuse, which may degrade the content and performance of the network.
+Another aspect is that a DAG itself has no attached semantics, which weakens
+its consistency property at the application level, which may interpret the DAG
+in conflicting orders.
+The proposed consensus mechanism addresses permissionless writes and provides
+a total order for applications (at the cost of rollbacks).
+
+A similar dVCS have been recently proposed~\cite{p2p.dvcs}, with a DAG
+representation and merging policies.
+To resolve \emph{competition conflicts}, they propose to use an external
+scoring function, such as users' reputations.
+Our proposed consensus mechanism internalizes such reputation scoring function.
+Integrated reputation also prevents SPAM and abusive behavior from byzantine
+nodes, which could otherwise generate very large graphs that take forever to
+synchronize (as discussed for Byzantine Causal Broadcast~\cite{p2p.dag.sync}).
+
+\section{The API \& Middleware}
+\label{sec.conclusion}
+
+\section{Evaluation}
+\label{sec.conclusion}
+
+\section{Conclusion}
+\label{sec.conclusion}
+
+\bibliographystyle{IEEEtran}
+\bibliography{tpd-22}
+
+%\begin{comment}
+\begin{IEEEbiography}[{\includegraphics[width=1in,height=1.25in,clip,keepaspectratio]{chico}}]{Francisco Sant'Anna}
+received his PhD degree in Computer Science from PUC-Rio, Brazil in
+2013.
+In 2016, he joined the Faculty of Computer Science at the Rio de Janeiro State
+University, Brazil.
+His research interests include Programming Languages and Concurrent \&
+Distributed Systems.
+\end{IEEEbiography}
+%\end{comment}
+
+\end{document}
