@@ -118,16 +118,16 @@ In this section, we revisit existing solutions for symmetric distributed
 applications.
 We focus on (i) how the network is organized, (ii) how events are propagated,
 and (iii) how global time is determined.
-Figure~\ref{fig.related} compares selected works regarding these aspects.
+Figure~\ref{fig.table} compares selected works regarding these aspects.
 
 Croquet%
 \footnote{Croquet.io: https://croquet.io/}~\cite{TODO} guarantees
 bit-identical real-time behavior for every user in a collaborative
 distributed environment.
 %
-As illustrated in Figure~\ref{fig.croquet}, a centralized \emph{reflector}
-issues periodic ticks, such that all nodes in the network advance together
-according to a synchronized global shared clock.
+As detailed in Figure~\ref{fig.algos}, a centralized \emph{reflector} issues
+periodic ticks, such that all nodes in the network advance together according
+to a synchronized global shared clock.
 If an user generates an event, it is delayed and sent back to the reflector,
 which broadcasts the event in the next tick, which all nodes apply in sync
 (including the originating node).
@@ -137,14 +137,14 @@ support late joins to a running session.
 The new node just needs to restore the latest snapshot and simulate the
 remaining events to reach the current running state.
 %
-As indicated in Figure~\ref{fig.related}, Croquet relies on a centralized
+As indicated in Figure~\ref{fig.table}, Croquet relies on a centralized
 network, in which nodes advance in sync, and in which event outcomes depend
 on the originating node to be online.
 
 GALS~\cite{TODO} shares the same goals with Croquet, but with some tradeoffs,
 mostly favoring clients with slow connections.
-As illustrated in Figure~\ref{fig.gals}, instead of advancing ticks in sync
-with the server, clients have their own local clocks.
+As detailed in Figure~\ref{fig.algos}, instead of advancing ticks in sync with
+the server, clients have their own local clocks.
 Also, event generation is delayed dynamically according to the slowest client.
 %
 On the one hand, ticks do not generate any traffic and clients have smooth
@@ -154,19 +154,43 @@ clients may experience occasional freezes.
 The syncing protocol also requires bookkeeping to deal with clock drifts and
 client disconnections.
 %
-As indicated in Figure~\ref{fig.related}, GALS relies on a centralized
+As indicated in Figure~\ref{fig.table}, GALS relies on a centralized
 network, in which nodes advance independently, and in which event outcomes
 depend on the originating node to be online.
 
 In both solutions, the application advances in real time, with a total order
 among events, which is determined by a centralized server that must be
 permanently online.
+All clients compute the events in sequence, respecting their timestamps, and
+using only deterministic and stateless calls.
+This way, it is guaranteed that all clients reach the same state, going
+through bit-identical steps.
 
-An antagonistic approach is
+An antagonistic approach to computing a series of event occurrences
+deterministically, is to model the application data structures with
+conflict-free replicated data types (CRDTs)~\cite{TODO}.
+CRDTs must be designed in such a way that all operations are commutative, so
+that the order in which they are applied does not affect the final outcome.
+%
+As detailed in Figure~\ref{fig.algos}, peers can communicate operations
+directly to each other with no central authority.
+Also, since operations need not to be ordered, they can be applied at the
+very first moment they are generated or received, even if the peers are
+offline.
+%
+Since operations must be commutative, it is not possible to timestamp them
+in a global shared clock.
+Hence, there is no notion of a timeline with peers going through bit-identical
+steps, but they do eventually reach the same state.
+%
+On the one hand, the main advantage of CRDTs is they support the concept of
+local-first software~\cite{TODO}, since they work offline.
+On the other hand, they provide very restrictive APIs (the CRDTs themselves),
+and do not support real-time consensus among peers.
+%
+Automerge~\cite{TODO} along with its accompanying Hypermerge peer-to-peer
+infrastructure is an example of an implementation of this approach.
 
-- two strong restrictions:
-   - very restrictive API
-   - not real time animations b/c no consensus on timestamps
 
 
 - offline, local first
@@ -175,30 +199,6 @@ An antagonistic approach is
 
 - all still deterministic, stateless
 
-
-architecture and dy-
-namic programming environment with a synchronization
-protocol called TeaTime, which more recently became a prod-
-uct8 . Croquet uses a similar centralized architecture to our
-work, but takes advantage of the cloud to place the server as
-close to clients as possible for better performance. In contrast
-to our work, Croquet relies on the server to issue tick events
-to clients, taking full control over the timeline. The server
-also timestamps events coming from the clients and redirect
-them to all participants. This results in a simpler protocol
-that supports joins and leaves transparently, and does not
-require roundtrips to determine timestamps. However, since
-all tick messages need to be transmitted over the network,
-the FPS rate of applications is proportional to the network
-latency. For instance, a latency of 100ms supports at most 10
-FPS. The transmission of ticks at higher FPS rates also incur
-in higher network traffic and server load. Another distinc-
-tion between the protocols is that Croquet favors instances
-with better latency, which observe optimal experience. In
-contrast, our protocol adjusts event latency dynamically to
-accommodate the slower instance. In addition, instances ex-
-ecute at the same tick rate respecting local times, regardless
-of network latency.
 
 Croquet OS is a.
 - centralized
@@ -216,26 +216,6 @@ Croquet OS is a.
 - time machine
     - paper que eu achei ha um tempo
     - braid
-
-Regarding the structure of messages, append-only Merkle~DAGs have been proposed
-as self-certified archives, and as CRDTs that provide strong eventual
-consistency~\cite{fed.matrix,p2p.byz}.
-However, when these DAGs are open to permissionless writes, they are subject to
-abuse, which may degrade the content and performance of the network.
-Another aspect is that a DAG itself has no attached semantics, which weakens
-its consistency property at the application level, which may interpret the DAG
-in conflicting orders.
-The proposed consensus mechanism addresses permissionless writes and provides
-a total order for applications (at the cost of rollbacks).
-
-A similar dVCS have been recently proposed~\cite{p2p.dvcs}, with a DAG
-representation and merging policies.
-To resolve \emph{competition conflicts}, they propose to use an external
-scoring function, such as users' reputations.
-Our proposed consensus mechanism internalizes such reputation scoring function.
-Integrated reputation also prevents SPAM and abusive behavior from byzantine
-nodes, which could otherwise generate very large graphs that take forever to
-synchronize (as discussed for Byzantine Causal Broadcast~\cite{p2p.dag.sync}).
 
 \section{The API \& Middleware}
 \label{sec.conclusion}
