@@ -205,10 +205,28 @@ local-first software~\cite{TODO}, since they work offline.
 On the other hand, they provide very restrictive APIs (the CRDTs themselves),
 and do not support real-time consensus among peers.
 %
+As indicated in Figure~\ref{fig.table}, CRDTs work on decentralized networks,
+in which nodes advance independently, and in which operations can be applied
+immediately, even while offline.
+%
 Automerge~\cite{TODO} along with its accompanying Hypermerge peer-to-peer
 infrastructure is an example of an implementation of this approach.
 
-In this work, we try to .
+In this work, our goal is to support peer-to-peer real-time symmetric
+execution, while still tolerating offline and out-of-order event generation.
+%
+As detailed in Figure~\ref{fig.algos}, peers have their own timeline and can
+communicate events directly to each other.
+Events are delayed to be able to reach other peers in time.
+In the case deadlines are missed, the peer rolls back in time and simulates
+the execution in fast forward until it reaches real time again.
+
+
+, in which nodes advance independently, and in which event outcomes
+depend on the originating node to be online.
+
+
+we try to .
 
 - offline, local first
 - DAG, no consensus, partial order
