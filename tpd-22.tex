@@ -32,8 +32,8 @@
 
 \IEEEtitleabstractindextext{%
 \begin{abstract}
-In multi-node collaborative applications, users can interact asynchronously
-and share the exact same experience remotely.
+In multi-node collaborative applications, users can interact remotely and
+share the exact same experience as if they were in a single machine.
 %
 In this work, we propose a middleware for \emph{symmetric peer-to-peer
 applications} in which decentralized instances can broadcast asynchronous
@@ -45,8 +45,8 @@ deterministic, stateless, and only supports pre-allocated memory.
 %
 The middleware is responsible for synchronizing the events in a global shared
 timeline across the network.
-Based on memory snapshots and deterministic simulation, a ``time machine''
-rolls back and resynchronizes the state of conflicting nodes.
+Based on memory snapshots and deterministic simulation, a ``time machine'' can
+rollback conflicting nodes to resynchronize their state.
 %
 TODO: application, results
 \end{abstract}
@@ -64,19 +64,19 @@ collaboration, determinism, peer-to-peer, time machine
 
 \IEEEPARstart{C}{ollaborative} networked applications allow multiple users to
 interact remotely and yet share the same experience in real time.
-Examples of such \emph{symmetric distributed applications}~\cite{gals}
-are shared documents, watch parties, and multi-player games.
+Examples of these \emph{symmetric distributed applications}~\cite{gals} are
+shared documents, watch parties, and multi-player games.
 %
 In order to reproduce the exact behavior in multiple devices, the application
-must be able to synchronize its time and execution across the network.
+must be able to synchronize time and execution across the network.
 In addition, since users can interact asynchronously with the application,
 event occurrences must somehow be synchronized back across devices.
 
 A common approach towards symmetric applications is to introduce a middleware
 to orchestrate events and time in the network~\cite{gals,croquet}.
-Applications developers rely on middleware primitives to trigger events, which
-are intercepted and synchronized in a global shared timeline across the
-network.
+This way, applications developers can rely on middleware primitives to trigger
+events, which are intercepted and synchronized in a global shared timeline
+across the network.
 Developers must also restrict themselves to deterministic and stateless calls
 only, such that execution can be equally reproduced in all nodes according to
 the shared timeline.
@@ -85,12 +85,13 @@ nodes and determine the shared timeline.
 
 In this work, we propose \emph{symmetric peer-to-peer applications}, which
 do not rely on central servers for coordination.
-Nodes in the application form a dynamic peer-to-peer network and communicate
-only with their neighbours directly.
-Events are flooded in the network and are triggered locally with a small
-delay to cope with latency.
-Our main contribution is a time machine that can rollback nodes to a previous
-state to apply events received out of order or too late.
+Nodes in the application form a dynamic graph network and communicate only
+with direct neighbours.
+Events are flooded in the graph and are triggered locally with a small delay
+to consider the network latency.
+To deal with events received out of order or too late, a distributed time
+machine can rollback nodes to a previous state and reapply events in order and
+in time.
 
 TODO: application, results
 
@@ -134,7 +135,7 @@ In Section~\ref{sec.conclusion}, ...
 In this section, we revisit existing solutions for symmetric distributed
 applications.
 We focus on (i) how the network is organized, (ii) how global time is
-determined, and (iii) how events are propagated.
+determined, and (iii) how events are propagated and applied.
 Figure~\ref{fig.table} compares selected works regarding these aspects.
 
 Croquet%
@@ -156,7 +157,7 @@ remaining events to reach the current running state.
 %
 As indicated in Figure~\ref{fig.table}, Croquet relies on a centralized
 network, in which nodes advance in sync, and in which event outcomes depend
-on the originating node to be online.
+on the central server to be online.
 
 GALS~\cite{gals} shares the same goals with Croquet, but with some tradeoffs,
 mostly favoring clients with slow connections.
@@ -169,23 +170,22 @@ frame transitions, even those with poor connections.
 On the other hand, event generation requires two round trips to the server and
 clients may experience occasional freezes.
 The syncing protocol also requires bookkeeping to deal with clock drifts and
-client disconnections.
+client disconnections~\cite{gals}.
 %
 As indicated in Figure~\ref{fig.table}, GALS relies on a centralized
 network, in which nodes advance independently, and in which event outcomes
-depend on the originating node to be online.
+depend on the central server to be online.
 
-In both solutions, the application advances in real time, with a total order
-among events, which is determined by a centralized server that must be
-permanently online.
+In both solutions, the network advances together as a whole in real time, with
+a total order among events, which is determined by a central server that must
+be permanently online.
 All clients compute the events in sequence, respecting their timestamps, and
 using only deterministic and stateless calls.
-This way, it is guaranteed that all clients reach the same state, going
+This way, it is guaranteed that all clients reach the same state, also going
 through bit-identical steps.
 
 An antagonistic approach to deterministic reactions to events is to model the
-application data structures with conflict-free replicated data types
-(CRDTs)~\cite{crdts}.
+application with conflict-free replicated data types (CRDTs)~\cite{crdts}.
 CRDTs are designed in such a way that all operations are commutative, so that
 the order in which they are applied does not affect the final outcome.
 %
@@ -197,11 +197,11 @@ offline.
 %
 Since operations must be commutative, it is not possible to timestamp them
 in a global shared clock.
-Hence, there is no notion of a timeline with peers going through bit-identical
-steps, but they do eventually reach the same state.
+Hence, there is no notion of a timeline in which peers go through
+bit-identical steps, but they do eventually reach the same state.
 %
-On the one hand, the main advantage of CRDTs is they support the concept of
-local-first software~\cite{local}, since they work offline.
+On the one hand, the main advantage of CRDTs is the support for local-first
+software~\cite{local}, since they can work offline in the same way as online.
 On the other hand, they provide very restrictive APIs (the CRDTs themselves),
 and do not support real-time consensus among peers.
 %
@@ -210,7 +210,8 @@ in which nodes advance independently, and in which operations can be applied
 immediately, even while offline.
 %
 Automerge along with its accompanying Hypermerge peer-to-peer infrastructure
-is an example of an implementation of this approach~\cite{p2p.automerge,p2p.pushpin}.
+is an example of an implementation of decentralized
+CRDTs~\cite{p2p.automerge,p2p.pushpin}.
 
 In this work, as indicated in Figure~\ref{fig.table}, our goal is to support
 peer-to-peer real-time symmetric execution, while still tolerating offline and
@@ -220,33 +221,37 @@ As detailed in Figure~\ref{fig.algos}, peers have independent timelines and
 can communicate events directly to each other.
 Events are delayed to be able to reach other peers in time.
 In the case a deadline is missed, the peer rolls back in time and then fast
-forwards execution until it reaches real time again.
+forwards execution until it catches real-time behavior again.
 %
 Like Croquet and GALS, peers compute events in sequence using only
 deterministic and stateless calls.
 
-Fusion%
+Regarding decentralized time machines, Fusion%
 \footnote{Fusion: \url{https://doc.photonengine.com/en-us/fusion}}
 is a state synchronization networking library for the Unity game engine.
 It provides networked tick-based simulation in two modes: client-server
-(\emph{hosted mode}) or peer-to-peer (\emph{shared mode}).
+(\emph{hosted mode}) and peer-to-peer (\emph{shared mode}).
 The hosted mode is based on continuous memory snapshots, which allows for
 full rollbacks when clients diverge.
 However, the shared mode is less powerful and only supports eventual
 consistency among clients.
-We presume that continuous memory snapshots would be too expensive without a
+We presume that continuous memory snapshots would be too costly without a
 central server.
 
 Regarding single-user time machines, the video game Braid%
 \footnote{\url{Braid: http://braid-game.com/}}
-is designed on the assumption that players have unrestricted power to go back
-in time.
-Like Fusion, it's implementation is based on continuous memory snapshots, and
-not deterministic simulation as we propose in this work.
-
-- time machine
-    - paper que eu achei ha um tempo
-    - braid
+is designed on the assumption that players have unrestricted rollbacks as part
+of the game mechanics.
+Like Fusion, the implementation is based on continuous memory snapshots,
+instead of deterministic simulation as we propose in this work.
+%
+Schuster~\cite{tml.js} proposes a simple API for time travelling in
+event-driven JavaScript:
+    \code{init()} to return an initial state;
+    \code{handle(evt,mem)} to process events and modify state; and
+    \code{render(mem)} to output the current state.
+As we describe next, we use a similar approach by separating mutation from
+rendering~\cite{tml.alive}.
 
 \section{The API \& Middleware}
 \label{sec.tml}
