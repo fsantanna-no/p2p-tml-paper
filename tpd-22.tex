@@ -219,14 +219,31 @@ out-of-order event generation.
 As detailed in Figure~\ref{fig.algos}, peers have independent timelines and
 can communicate events directly to each other.
 Events are delayed to be able to reach other peers in time.
-In the case a deadline is missed, the peer rolls back in time and fast
+In the case a deadline is missed, the peer rolls back in time and then fast
 forwards execution until it reaches real time again.
 %
 Like Croquet and GALS, peers compute events in sequence using only
 deterministic and stateless calls.
 
-TODO
-- photon unreal
+Fusion%
+\footnote{Fusion: \url{https://doc.photonengine.com/en-us/fusion}}
+is a state synchronization networking library for the Unity game engine.
+It provides networked tick-based simulation in two modes: client-server
+(\emph{hosted mode}) or peer-to-peer (\emph{shared mode}).
+The hosted mode is based on continuous memory snapshots, which allows for
+full rollbacks when clients diverge.
+However, the shared mode is less powerful and only supports eventual
+consistency among clients.
+We presume that continuous memory snapshots would be too expensive without a
+central server.
+
+Regarding single-user time machines, the video game Braid%
+\footnote{\url{Braid: http://braid-game.com/}}
+is designed on the assumption that players have unrestricted power to go back
+in time.
+Like Fusion, it's implementation is based on continuous memory snapshots, and
+not deterministic simulation as we propose in this work.
+
 - time machine
     - paper que eu achei ha um tempo
     - braid
