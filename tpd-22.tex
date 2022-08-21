@@ -47,7 +47,7 @@ deterministic, stateless, and only supports pre-allocated memory.
 The middleware is responsible for synchronizing the events in a global shared
 timeline across the network.
 Based on memory snapshots and deterministic simulation, a ``time machine'' can
-rollback conflicting nodes to resynchronize their state.
+rollback conflicting peers to resynchronize their state.
 %
 TODO: application, results
 \end{abstract}
@@ -91,7 +91,7 @@ with direct neighbours.
 Events are flooded in the graph and are triggered locally with a small delay
 to consider the network latency.
 To deal with events received out of order or too late, a distributed time
-machine can rollback nodes to a previous state and reapply events in order and
+machine can rollback peers to a previous state and reapply events in order and
 in time.
 
 TODO: application, results
@@ -130,6 +130,11 @@ In Section~\ref{sec.conclusion}, ...
   \includegraphics[width=\linewidth]{algos}
   \caption{
     \label{fig.algos}
+    Four approaches to symmetric distributed applications: Croquet, GALS,
+    CRDTs, and this work.
+    The vertical arrows in parallel represent the timelines in nodes in the
+    network.
+    The arrows crossing nodes represent communication between them.
   }
 \end{figure*}
 
@@ -207,7 +212,7 @@ On the other hand, they provide very restrictive APIs (the CRDTs themselves),
 and do not support real-time consensus among peers.
 %
 As indicated in Figure~\ref{fig.table}, CRDTs work on decentralized networks,
-in which nodes advance independently, and in which operations can be applied
+in which peers advance independently, and in which operations can be applied
 immediately, even while offline.
 %
 Automerge along with its accompanying Hypermerge peer-to-peer infrastructure
@@ -254,14 +259,39 @@ event-driven JavaScript:
 As we describe next, we use a similar approach by separating mutation from
 rendering~\cite{tml.alive}.
 
-\section{The API \& Middleware}
+\section{The Middleware \& Programming API}
 \label{sec.tml}
 
 In this section, we describe the architecture of our middleware and also the
-API in which developers need to conform.
+API in which developers have to conform with.
+
+We guide our discussion through the didactic example of Figure~\ref{fig.move},
+in which multiple users use the arrow keys to control the direction of a
+moving rectangle.
+The six instances are connected in a peer-to-peer network, such that some
+peers can only communicate indirectly.
 %
-We guide our discussion through a didactic example in which multiple users use
-the arrow keys to change the direction of a moving rectangle.
+The application is symmetric in the sense that if any peer presses a key, an
+event is broadcast and applied in all peers simultaneously, as if they were a
+single mirrored instance.
+At any moment, if a peer pauses the application, all peers are guaranteed to
+pause exactly at the same frame with the rectangle at the same position.
+%
+A video
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{move}
+    \caption[XXX] {
+	A moving rectangle is controlled by peers connected indirectly.
+	Users can press \code{↑ ↓ → ←} to change the direction of the
+	rectangle or \code{SPACE} to pause the application.
+	The inputs are applied simultaneously in all peers, as if they were
+	mirrors of a single application.
+        Video: \url{http://youtube.com/TODO}
+        \label{fig.move}
+    }
+\end{figure}
 
 - same keys, same behavior, pause at the same time
 
