@@ -271,13 +271,146 @@ moving rectangle.
 The six instances are connected in a peer-to-peer network, such that some
 peers can only communicate indirectly.
 %
-The application is symmetric in the sense that if any peer presses a key, an
-event is broadcast and applied in all peers simultaneously, as if they were a
-single mirrored instance.
+The application is symmetric in the sense that if any peer presses a key, a
+corresponding event is broadcast and applied in all peers simultaneously, as
+if they were a single mirrored instance.
 At any moment, if a peer pauses the application, all peers are guaranteed to
-pause exactly at the same frame with the rectangle at the same position.
+pause exactly at the same frame with the rectangle ``bit-identically'' at the
+same position.
+
+The main job of the middleware is to deal with the uncertainties of the
+network in order to preserve the symmetric behavior across peers.
+More specifically, the middleware ensures that all peers
+    (i)   meet event deadlines;
+    (ii)  advance in sync in real time;
+    (iii) can leave and join the network and remain symmetric.
+We detail how the middleware preserves these properties further.
+
+\subsection{The Programming API}
+\label{sec.tml.api}
+
+The middleware expects to take full control of the application execution in
+order to control its timeline, and also communicate events in the network.
+For this reason, the basic API is to call an \code{init} function passing a
+set of callbacks, which the middleware uses to communicate with the
+application, and then call \code{loop} to yield control to the middleware:
+
+{\footnotesize
+\begin{verbatim}
+int main (void) {
+    ...  // initialize the UI
+    p2p_init(1, 50, sizeof(G), &G, cb_sim, cb_eff, cb_rec);
+    p2p_link("182.168.0.2", 5000, 2);
+    p2p_loop();
+    p2p_quit();
+    ...  // finalize the UI
+}
+\end{verbatim}
+}
+
+
+The middleware relies on the library \emph{SDL} to deal with the network and
+input events, such as timers, mouse clicks and key presses.
+The code that follows is a typical:
+
+{\footnotesize
+\begin{verbatim}
+// preallocated full application state
+struct {
+    ...
+} G;
+
+// executes a simulation step (handles ticks or events)
+void cb_sim (p2p_evt evt) {
+    switch (evt.id) {
+        ...
+    }
+}
+
+// executes the simulation effects (e.g., redraw the screen)
+void cb_eff (int trv) {
+    ...
+}
+
+// generates events
+int cb_rec (SDL_Event* sdl, p2p_evt* evt) {
+    switch (sdl->type) {
+    	...
+    }
+}
+
+\end{verbatim}
+}
+
+
+for computer graphics, and
+\emph{Arduino} for embedded systems.%
+\footnote{SDL: \url{www.libsdl.org}. Arduino: \url{www.arduino.cc}.}
+This allows for an easier integration of our middleware with practical systems,
+and also reinforces how, in our proposal, programming distributed versions
+becomes similar to their local counterparts.
+
+
+
+{\footnotesize
+\begin{verbatim}
+void p2p_init (
+    uint8_t me, int port, int fps,
+    int mem_n, void* mam_app,
+    void (*cb_sim) (p2p_evt),           // simulation callback
+    void (*cb_eff) (int trv),           // effects callback
+    int (*cb_rec) (SDL_Event*,p2p_evt*) // event recording callback
+);
+void p2p_link (char* host, int port, uint8_t me);
+void p2p_quit (void);
+void p2p_loop (void);
+
+void p2p_bcast (uint32_t tick, p2p_evt* evt);
+void p2p_dump  (void);
+
+ > freechains '#p2p.md' dislike 3_AE3A1B.. --sign=USR1
+ > freechains '#p2p.md' dislike 3_AE3A1B.. --sign=USR2
+ > freechains '#p2p.md' dislike 3_AE3A1B.. --sign=USR3
+ > freechains-vcs '#p2p.md' checkout p2p.md
+ > cat p2p.md
+ P2p networking is...
+ The [USENET](#usenet.md), ...  <-- no 3rd line
+\end{verbatim}
+}
+
+
 %
-A video
+\begin{itemize}
+\item \textbf{Event Deadlines:}
+Due to the inherent latency of networks, peers generate events with deliberate
+delays so that they reach other peers in time to be applied in sync in a
+common deadline.
+However, a peer that is locally at time \code{T} may receive an event \code{E}
+that should have been applied at time \code{T-t}.
+In this case, the middleware automatically rolls back the peer \code{t} units
+of time and applies \code{E} at the correct time.
+It then fast forwards the peer \code{t} units of time, re-applying all events
+that occurred in between \code{T-t} and \code{T}.
+%
+\item \textbf{Time Synchronization:}
+Each peer has its own timeline initiated as soon as the application is
+launched.
+Also, the internal clock of each peer may diverge over time.
+Hence, the timelines will inevitably be out of sync eventually.
+The middleware synchronizes clocks continuously as follows:
+Every time a
+
+
+		Each peer also
+%
+\item[Peer Churn] Arrival and Departure of peers. received events, time sync, all deadlines were missed, departure no problem
+\end{itemize}
+- time sync
+
+The middleware handles:
+- time sync
+- disc / conn
+- late event
 
 \begin{figure}[t]
     \centering
@@ -293,18 +426,38 @@ A video
     }
 \end{figure}
 
-- same keys, same behavior, pause at the same time
-
-we show how a
-
-
-- sym
-- ids
 - walk back-forth
 - vector clocks
 - dynamic net
 - re-connect
 - late join
+
+We make some assumptions about the network, which are assigned externally to
+the middleware:
+%
+\begin{itemize}
+\item Peers have contiguous numeric unique identifiers.
+\item Peers identifiers are assigned externally to the middleware.
+\item Topology is dynamic, but also assigned externally
+
+\end{itemize}
+%
+Except for the last item, we claim that the others can be solved externally,
+without affecting the middleware.
+For instance,
+- orthogonal and would not affect the other algorithms in the middleware
+
+, which we claim that could be
+solved further:
+- peers have unique identifiers
+- ids are outside
+- topology, dynamic but outside
+- fixed maximum nodes
+- fixed latency
+We claim that Use external protocols
+For instance, latency is only a constant, no problem being a variable
+
+- non-malicious nodes
 
 \section{Application}
 \label{sec.app}
