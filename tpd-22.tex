@@ -290,23 +290,108 @@ We detail how the middleware preserves these properties further.
 \label{sec.tml.api}
 
 The middleware expects to take full control of the application execution in
-order to control its timeline, and also communicate events in the network.
-For this reason, the basic API is to call an \code{init} function passing a
-set of callbacks, which the middleware uses to communicate with the
-application, and then call \code{loop} to yield control to the middleware:
+order to control its timeline, and also to communicate events in the network.
+For this reason, the basic programming API is to call a \code{loop} function
+passing a set of callbacks, which the middleware uses to communicate with the
+application:
 
 {\footnotesize
 \begin{verbatim}
 int main (void) {
-    ...  // initialize the UI
-    p2p_init(1, 50, sizeof(G), &G, cb_sim, cb_eff, cb_rec);
-    p2p_link("182.168.0.2", 5000, 2);
-    p2p_loop();
-    p2p_quit();
-    ...  // finalize the UI
+    p2p_loop (
+        1,              // peer identifier
+        50,             // simulation FPS
+        sizeof(G), &G,  // pre-allocated full state
+        cb_ini,         // init/quit callback
+        cb_sim,         // simulation callback
+        cb_ren,         // rendering callback
+        cb_evt          // event triggering callback
+    );
 }
 \end{verbatim}
 }
+
+The middleware assumes that each peer is assigned a unique identifier in a
+contiguous range.
+The FPS must be the same in all peers to ensure that the simulation executes
+exactly the same.
+The variable \code{G} must hold the full application state.
+If dynamic allocation is required, it is necessary to hold a finite memory
+pool in \code{G} with a custom allocator.
+For instance, the moving rectangle application only requires to hold the
+current position and direction:
+
+{\footnotesize
+\begin{verbatim}
+struct {
+    int x,  y;   // position
+    int dx, dy;  // direction speed
+} G;
+int main (void) { ... }
+\end{verbatim}
+}
+
+The middleware calls \code{cb\_ini} twice: at the beginning and at the end of
+the loop.
+It should be used to initialize (and finalize) the network topology, as well
+as static globals that live outside the simulation memory, such as the window
+and image textures.
+
+{\footnotesize
+\begin{verbatim}
+void cb_ini (int ini) {
+    if (ini) {
+        // create the window
+        // open arrow images
+        // create peer links (peer-id, ip, port)
+        p2p_link(2, "192.168.1.2", 5000);
+    } else {
+        // create the window
+        // open arrow images
+        // destroy a peer links
+        p2p_unlink(2);
+    }
+}
+\end{verbatim}
+}
+
+The middleware calls \code{cb\_sim} on every frame to affect the simulation
+state \code{G} deterministically.
+The callback must never perform any side effects, such as rendering the frame.
+The calls normally happen during real-time simulation, i.e., while the user is
+interacting with the application.
+However, if the peer is out of sync, the middleware may ``time travel'' and
+call the simulation many times to go back and forth and catch up with real
+time.
+This is the reason why \code{cb\_sim} should
+
+
+
+This is why it is important that the simulation is detached from the view.
+
+
+\subsection{The Time Machine}
+\label{sec.tml.time}
+
+
+
+at the same time as the user
+is interacting with the application
+
+twice: at the beginning and at the end of
+the loop.
+It should be used to initialize (and finalize) the network topology, as well
+as static globals that live outside the simulation memory, such as the window
+and image textures.
+
+
+
+The core of the API are the 4 callbacks
+
+The network topology is dynamic
+
+%\item Peers have contiguous numeric unique identifiers.
+
 
 
 The middleware relies on the library \emph{SDL} to deal with the network and
