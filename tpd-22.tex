@@ -311,6 +311,11 @@ int main (void) {
 \end{verbatim}
 }
 
+Under the hood, the middleware relies on the library \emph{SDL}%
+\footnote{SDL: \url{www.libsdl.org}}
+to deal with the network and input events, such as timers, mouse clicks and
+key presses.
+
 The middleware assumes that each peer is assigned a unique identifier in a
 contiguous range.
 The FPS must be the same in all peers to ensure that the simulation executes
@@ -334,21 +339,21 @@ int main (void) { ... }
 The middleware calls \code{cb\_ini} twice: at the beginning and at the end of
 the loop.
 It should be used to initialize (and finalize) the network topology, as well
-as static globals that live outside the simulation memory, such as the window
-and image textures.
+as static globals that can live outside the simulation memory, such as the
+window and image textures.
 
 {\footnotesize
 \begin{verbatim}
 void cb_ini (int ini) {
     if (ini) {
-        // create the window
-        // open arrow images
+        // create the SDL window
+        // open the arrow PNG images
         // create peer links (peer-id, ip, port)
         p2p_link(2, "192.168.1.2", 5000);
     } else {
-        // create the window
-        // open arrow images
-        // destroy a peer links
+        // destroy the SDL window
+        // destroy the arrow PNG images
+        // destroy peer links
         p2p_unlink(2);
     }
 }
@@ -356,113 +361,70 @@ void cb_ini (int ini) {
 }
 
 The middleware calls \code{cb\_sim} on every frame to affect the simulation
-state \code{G} deterministically.
-The callback must never perform any side effects, such as rendering the frame.
+state of \code{G} deterministically.
+The callback must never perform any side effects, such as stateful calls or
+rendering the frame.
 The calls normally happen during real-time simulation, i.e., while the user is
 interacting with the application.
 However, if the peer is out of sync, the middleware may ``time travel'' and
 call the simulation many times to go back and forth and catch up with real
 time.
-This is the reason why \code{cb\_sim} should
+This is the reason why \code{cb\_sim} should be split from the rendering
+callback \code{cb\_ren}~\cite{tml.js}.
+%, which the middleware calls only on real-time frames.
 
+cbsim
 
+In our example, this callback just needs to redraw the rectangle at the
+current position:
 
-This is why it is important that the simulation is detached from the view.
+{\footnotesize
+\begin{verbatim}
+void cb_eff (void) {
+    // clears the SDL window
+    // redraws the rectangle at the current position
+    SDL_Rect r = { G.x, G.y, 20, 20 };
+    SDL_DrawRect(&r);
+}
+\end{verbatim}
+}
 
+Finally, the \code{cb\_evt} callback is called by the middleware in real time,
+whenever a local SDL event occurs.
+This callback has two goals:
+    (i)  broadcast application events, and
+    (ii) provide instant feedback to the user.
+Not all local low-level events may generate application events to be broadcast
+in the network.
+The callback is allowed to perform side effects, such as modifying the network
+topology, or exhibiting some feedback on the screen.
+In our example, we only generate application events for the 5 key events, and
+we also exhibit the pressed key in real time:
+
+{\footnotesize
+\begin{verbatim}
+int cb_evt (SDL_Event* sdl, p2p_evt* evt) {
+    if (sdl->type == SDL_KEYDOWN) {
+        int key = sdl->key.keysym.sym;
+	if (key == <any-of-the-keys>) {
+            SDL_DrawImage(<img-of-the-key>);
+            *evt = (p2p_evt) { P2P_EVT_KEY, key };
+            return 1; // generate application event
+	}
+    }
+    return 0; // otherwise, does not generate any event
+}
+\end{verbatim}
+}
 
 \subsection{The Time Machine}
 \label{sec.tml.time}
 
 
-
-at the same time as the user
-is interacting with the application
-
-twice: at the beginning and at the end of
-the loop.
-It should be used to initialize (and finalize) the network topology, as well
-as static globals that live outside the simulation memory, such as the window
-and image textures.
-
-
-
-The core of the API are the 4 callbacks
-
-The network topology is dynamic
+- p2p links por fora, como um servico TCP local
+- The network topology is dynamic
 
 %\item Peers have contiguous numeric unique identifiers.
-
-
-
-The middleware relies on the library \emph{SDL} to deal with the network and
-input events, such as timers, mouse clicks and key presses.
-The code that follows is a typical:
-
-{\footnotesize
-\begin{verbatim}
-// preallocated full application state
-struct {
-    ...
-} G;
-
-// executes a simulation step (handles ticks or events)
-void cb_sim (p2p_evt evt) {
-    switch (evt.id) {
-        ...
-    }
-}
-
-// executes the simulation effects (e.g., redraw the screen)
-void cb_eff (int trv) {
-    ...
-}
-
-// generates events
-int cb_rec (SDL_Event* sdl, p2p_evt* evt) {
-    switch (sdl->type) {
-    	...
-    }
-}
-
-\end{verbatim}
-}
-
-
-for computer graphics, and
-\emph{Arduino} for embedded systems.%
-\footnote{SDL: \url{www.libsdl.org}. Arduino: \url{www.arduino.cc}.}
-This allows for an easier integration of our middleware with practical systems,
-and also reinforces how, in our proposal, programming distributed versions
-becomes similar to their local counterparts.
-
-
-
-{\footnotesize
-\begin{verbatim}
-void p2p_init (
-    uint8_t me, int port, int fps,
-    int mem_n, void* mam_app,
-    void (*cb_sim) (p2p_evt),           // simulation callback
-    void (*cb_eff) (int trv),           // effects callback
-    int (*cb_rec) (SDL_Event*,p2p_evt*) // event recording callback
-);
-void p2p_link (char* host, int port, uint8_t me);
-void p2p_quit (void);
-void p2p_loop (void);
-
-void p2p_bcast (uint32_t tick, p2p_evt* evt);
-void p2p_dump  (void);
-
- > freechains '#p2p.md' dislike 3_AE3A1B.. --sign=USR1
- > freechains '#p2p.md' dislike 3_AE3A1B.. --sign=USR2
- > freechains '#p2p.md' dislike 3_AE3A1B.. --sign=USR3
- > freechains-vcs '#p2p.md' checkout p2p.md
- > cat p2p.md
- P2p networking is...
- The [USENET](#usenet.md), ...  <-- no 3rd line
-\end{verbatim}
-}
-
 
 %
 \begin{itemize}
