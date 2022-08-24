@@ -264,6 +264,13 @@ rendering~\cite{tml.alive}.
 
 In this section, we describe the architecture of our middleware and also the
 API in which developers have to conform with.
+The middleware is written in C and relies on the library \emph{SDL}%
+\footnote{SDL: \url{www.libsdl.org}}
+to deal with the network and input events, such as timers, mouse clicks and
+key presses.
+The full source code%
+\footnote{TODO}
+is under 500 lines of code.
 
 We guide our discussion through the didactic example of Figure~\ref{fig.move},
 in which multiple users use the arrow keys to control the direction of a
@@ -315,14 +322,17 @@ the middleware proceeds as follows:
 \item \textbf{Peer Churn:}
 Considering that we target peer-to-peer networks, it is important that the
 middleware can handle arrival and departure of peers seamlessly.
-TODO
+When a peer leaves the network, nothing needs to be done.
+The middleware just needs to ensure that a peer that joins the network receives
+all events in order, which is trivial since they all hold an absolute
+timestamp.
 \end{enumerate}
 
 \subsection{The Programming API}
 \label{sec.tml.api}
 
 The middleware expects to take full control of the application execution in
-order to control its timeline, and also to communicate events in the network.
+order to control its timeline and disseminate events in the network.
 For this reason, the basic programming API is to call a \code{loop} function
 passing a set of callbacks, which the middleware uses to communicate with the
 application:
@@ -342,11 +352,6 @@ int main (void) {
 }
 \end{verbatim}
 }
-
-Under the hood, the middleware relies on the library \emph{SDL}%
-\footnote{SDL: \url{www.libsdl.org}}
-to deal with the network and input events, such as timers, mouse clicks and
-key presses.
 
 The middleware assumes that each peer is assigned a unique identifier in a
 contiguous range.
@@ -378,13 +383,13 @@ window and image textures:
 \begin{verbatim}
 void cb_ini (int ini) {
     if (ini) {
-        // create the SDL window
-        // open the arrow PNG images
+        <...> // create the SDL window
+        <...> // open the arrow PNG images
         // create peer links (peer-id, ip, port)
         p2p_link(2, "192.168.1.2", 5000);
     } else {
-        // destroy the SDL window
-        // destroy the arrow PNG images
+        <...> // destroy the SDL window
+        <...> // destroy the arrow PNG images
         // destroy peer links
         p2p_unlink(2);
     }
@@ -422,20 +427,20 @@ Our callback \code{cb\_sim}
 \begin{verbatim}
 void cb_sim (p2p_evt evt) {
     switch (evt.id) {
-        case P2P_EVT_INIT:  // resets position and speed
+        case P2P_EVT_INIT: // resets pos and speed
             G.x = G.y = G.dx = G.dy = 0;
             break;
         case P2P_EVT_TICK:  // increases position
             G.x += G.dx * VEL;
             G.y += G.dy * VEL;
             break;
-        case P2P_EVT_KEY:   // modifies speed
+        case P2P_EVT_KEY:  // modifies speed
             switch (evt.pay.i1) {
                 case SDLK_UP:
                     G.dx = 0;
                     G.dy = -1;
                     break;
-                <...> // similar to DOWN/LEFT/RIGHT/SPACE
+                <...> // same for other keys
             }
             break;
     }
@@ -461,7 +466,7 @@ current position:
 {\footnotesize
 \begin{verbatim}
 void cb_eff (void) {
-    // clears the SDL window
+    <...> // clears the SDL window
     // redraws the rectangle at the current position
     SDL_Rect r = { G.x, G.y, 20, 20 };
     SDL_DrawRect(&r);
