@@ -140,8 +140,8 @@ In Section~\ref{sec.conclusion}, ...
 
 In this section, we revisit existing solutions for symmetric distributed
 applications.
-We focus on (i) how the network is organized, (ii) how global time is
-determined, and (iii) how events are propagated and applied.
+We focus on (a) how the network is organized, (b) how global time is
+determined, and (c) how events are propagated and applied.
 Figure~\ref{fig.table} compares selected works regarding these aspects.
 
 Croquet%
@@ -275,16 +275,48 @@ The application is symmetric in the sense that if any peer presses a key, a
 corresponding event is broadcast and applied in all peers simultaneously, as
 if they were a single mirrored instance.
 At any moment, if a peer pauses the application, all peers are guaranteed to
-pause exactly at the same frame with the rectangle ``bit-identically'' at the
-same position.
+pause exactly at the same frame with the rectangle being ``bit-identically'' at
+the same position.
 
 The main job of the middleware is to deal with the uncertainties of the
 network in order to preserve the symmetric behavior across peers.
 More specifically, the middleware ensures that all peers
-    (i)   meet event deadlines;
-    (ii)  advance in sync in real time;
-    (iii) can leave and join the network and remain symmetric.
-We detail how the middleware preserves these properties further.
+    (a) meet event deadlines,
+    (b) advance in sync in real time, and
+    (c) can leave and join the network and remain symmetric:
+%
+\begin{enumerate}
+\item \textbf{Event Deadlines:}
+Due to the inherent latency of networks, peers generate events with a
+deliberate delay so that they reach other peers in time to be applied in sync
+in a common deadline.
+%We first assume a predetermined delay for the sake of simplicity.
+However, a peer that is locally ahead of time may receive an event that should
+have been applied in the past, event considering the delay.
+In this case, the middleware automatically rolls back the peer, applies the
+event at the correct time, and then fast forwards the peer, re-applying all
+remaining events up to the real time.
+%
+\item \textbf{Time Synchronization:}
+Since peers run in different machines, their timelines will inevitably be out
+of sync because:
+    (a) applications are launched locally at different times, and
+    (b) internal clocks may diverge over time.
+The middleware assumes the maximum time among all peers the be the
+``correct real time'', so that other peers must fast forward to catch up with
+it.
+Therefore, in order to determine the maximum time and synchronize the clocks,
+the middleware proceeds as follows:
+    (a) peers broadcast \code{SYNC} events periodically with their local
+        times, and
+    (b) if a peer is behind a received \code{SYNC}, it advances its frames
+        proportionally faster to catch up in time.
+%
+\item \textbf{Peer Churn:}
+Considering that we target peer-to-peer networks, it is important that the
+middleware can handle arrival and departure of peers seamlessly.
+TODO
+\end{enumerate}
 
 \subsection{The Programming API}
 \label{sec.tml.api}
@@ -320,7 +352,7 @@ The middleware assumes that each peer is assigned a unique identifier in a
 contiguous range.
 The FPS must be the same in all peers to ensure that the simulation executes
 exactly the same.
-The variable \code{G} must hold the full application state.
+The global variable \code{G} must hold the full application state.
 If dynamic allocation is required, it is necessary to hold a finite memory
 pool in \code{G} with a custom allocator.
 For instance, the moving rectangle application only requires to hold the
@@ -340,7 +372,7 @@ The middleware calls \code{cb\_ini} twice: at the beginning and at the end of
 the loop.
 It should be used to initialize (and finalize) the network topology, as well
 as static globals that can live outside the simulation memory, such as the
-window and image textures.
+window and image textures:
 
 {\footnotesize
 \begin{verbatim}
@@ -363,18 +395,66 @@ void cb_ini (int ini) {
 The middleware calls \code{cb\_sim} on every frame to affect the simulation
 state of \code{G} deterministically.
 The callback must never perform any side effects, such as stateful calls or
-rendering the frame.
-The calls normally happen during real-time simulation, i.e., while the user is
-interacting with the application.
+rendering the frame:
+The callback receives the occurring input event if any.
+There are two predetermined events:
+    \code{P2P\_EVT\_INIT} called at the beginning of the simulation, and
+    \code{P2P\_EVT\_TICK} called at every frame.
+The application-specific events must be declared by the programmer in an
+enumeration.
+In our application, we define a new event \code{P2P\_EVT\_KEY} to represent key
+presses:
+
+{\footnotesize
+\begin{verbatim}
+enum {
+    P2P_EVT_KEY = P2P_EVT_NEXT
+};
+\end{verbatim}
+}
+
+Our callback \code{cb\_sim}
+    (a) resets the rectangle position and speed on \code{INIT},
+    (b) increments the position based on the current speed on \code{TICK}, and
+    (c) modifies the speed based on \code{KEY}:
+
+{\footnotesize
+\begin{verbatim}
+void cb_sim (p2p_evt evt) {
+    switch (evt.id) {
+        case P2P_EVT_INIT:  // resets position and speed
+            G.x = G.y = G.dx = G.dy = 0;
+            break;
+        case P2P_EVT_TICK:  // increases position
+            G.x += G.dx * VEL;
+            G.y += G.dy * VEL;
+            break;
+        case P2P_EVT_KEY:   // modifies speed
+            switch (evt.pay.i1) {
+                case SDLK_UP:
+                    G.dx = 0;
+                    G.dy = -1;
+                    break;
+                <...> // similar to DOWN/LEFT/RIGHT/SPACE
+            }
+            break;
+    }
+}
+\end{verbatim}
+}
+
+
+The calls to \code{cb\_sim} normally happen during real-time simulation, i.e.,
+while the user is interacting with the application.
 However, if the peer is out of sync, the middleware may ``time travel'' and
 call the simulation many times to go back and forth and catch up with real
 time.
+This is the reason why we define \code{INIT} as an event: time travelling
+requires to simulate, since the 
+
 This is the reason why \code{cb\_sim} should be split from the rendering
 callback \code{cb\_ren}~\cite{tml.js}.
 %, which the middleware calls only on real-time frames.
-
-cbsim
-
 In our example, this callback just needs to redraw the rectangle at the
 current position:
 
@@ -392,8 +472,8 @@ void cb_eff (void) {
 Finally, the \code{cb\_evt} callback is called by the middleware in real time,
 whenever a local SDL event occurs.
 This callback has two goals:
-    (i)  broadcast application events, and
-    (ii) provide instant feedback to the user.
+    (a) broadcast application events, and
+    (b) provide instant feedback to the user.
 Not all local low-level events may generate application events to be broadcast
 in the network.
 The callback is allowed to perform side effects, such as modifying the network
@@ -405,17 +485,21 @@ we also exhibit the pressed key in real time:
 \begin{verbatim}
 int cb_evt (SDL_Event* sdl, p2p_evt* evt) {
     if (sdl->type == SDL_KEYDOWN) {
-        int key = sdl->key.keysym.sym;
-	if (key == <any-of-the-keys>) {
+        if (sdl->key == <any-of-the-keys>) {
             SDL_DrawImage(<img-of-the-key>);
-            *evt = (p2p_evt) { P2P_EVT_KEY, key };
+            *evt = (p2p_evt) { P2P_EVT_KEY, sdl->key };
             return 1; // generate application event
-	}
+        }
     }
     return 0; // otherwise, does not generate any event
 }
 \end{verbatim}
 }
+
+\subsection{TODO}
+
+TODO: simpler than vector clocks, absolute times are correct
+TODO: piggyback SYNC in normal inputs
 
 \subsection{The Time Machine}
 \label{sec.tml.time}
@@ -427,31 +511,6 @@ int cb_evt (SDL_Event* sdl, p2p_evt* evt) {
 %\item Peers have contiguous numeric unique identifiers.
 
 %
-\begin{itemize}
-\item \textbf{Event Deadlines:}
-Due to the inherent latency of networks, peers generate events with deliberate
-delays so that they reach other peers in time to be applied in sync in a
-common deadline.
-However, a peer that is locally at time \code{T} may receive an event \code{E}
-that should have been applied at time \code{T-t}.
-In this case, the middleware automatically rolls back the peer \code{t} units
-of time and applies \code{E} at the correct time.
-It then fast forwards the peer \code{t} units of time, re-applying all events
-that occurred in between \code{T-t} and \code{T}.
-%
-\item \textbf{Time Synchronization:}
-Each peer has its own timeline initiated as soon as the application is
-launched.
-Also, the internal clock of each peer may diverge over time.
-Hence, the timelines will inevitably be out of sync eventually.
-The middleware synchronizes clocks continuously as follows:
-Every time a
-
-
-		Each peer also
-%
-\item[Peer Churn] Arrival and Departure of peers. received events, time sync, all deadlines were missed, departure no problem
-\end{itemize}
 - time sync
 
 The middleware handles:
@@ -463,11 +522,11 @@ The middleware handles:
     \centering
     \includegraphics[width=\linewidth]{move}
     \caption[XXX] {
-	A moving rectangle is controlled by peers connected indirectly.
-	Users can press \code{↑ ↓ → ←} to change the direction of the
-	rectangle or \code{SPACE} to pause the application.
-	The inputs are applied simultaneously in all peers, as if they were
-	mirrors of a single application.
+        A moving rectangle is controlled by peers connected indirectly.
+        Users can press \code{↑ ↓ → ←} to change the direction of the
+        rectangle or \code{SPACE} to pause the application.
+        The inputs are applied simultaneously in all peers, as if they were
+        mirrors of a single application.
         Video: \url{http://youtube.com/TODO}
         \label{fig.move}
     }
