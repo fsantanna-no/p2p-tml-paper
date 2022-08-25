@@ -41,8 +41,8 @@ applications} in which decentralized instances can broadcast asynchronous
 events and yet conform to identical behavior.
 %
 Nodes are allowed to join and leave the network at any time.
-Application developers must adhere to a restricted API, which is
-deterministic, stateless, and only supports pre-allocated memory.
+Application developers must adhere to a restricted API, which is deterministic,
+stateless, and only supports pre-allocated memory.
 %
 The middleware is responsible for synchronizing the events in a global shared
 timeline across the network.
@@ -303,6 +303,8 @@ have been applied in the past, event considering the delay.
 In this case, the middleware automatically rolls back the peer, applies the
 event at the correct time, and then fast forwards the peer, re-applying all
 remaining events up to the real time.
+As we detail further, rolling back a peer requires to simulate its whole
+execution from the beginning (or from a snapshot in between).
 %
 \item \textbf{Time Synchronization:}
 Since peers run in different machines, their timelines will inevitably be out
@@ -347,7 +349,7 @@ int main (void) {
         cb_ini,         // init/quit callback
         cb_sim,         // simulation callback
         cb_ren,         // rendering callback
-        cb_evt          // event triggering callback
+        cb_evt          // events callback
     );
 }
 \end{verbatim}
@@ -357,6 +359,9 @@ The middleware assumes that each peer is assigned a unique identifier in a
 contiguous range.
 The FPS must be the same in all peers to ensure that the simulation executes
 exactly the same.
+
+\subsubsection{Application State}
+
 The global variable \code{G} must hold the full application state.
 If dynamic allocation is required, it is necessary to hold a finite memory
 pool in \code{G} with a custom allocator.
@@ -372,6 +377,31 @@ struct {
 int main (void) { ... }
 \end{verbatim}
 }
+
+\subsubsection{Application Events}
+
+The application generates events that need to be broadcast to the network so
+that all peers behave the same.
+In this sense, application events may differ from low-level local system
+events, which may or may not be mapped 1-to-1 in the callback \code{cb\_evt}.
+
+There middleware predefines two events for all applications:
+    \code{P2P\_EVT\_START} represents the beginning of the simulation, and
+    \code{P2P\_EVT\_TICK} called at every frame.
+The application-specific events must be declared by the programmer in an
+enumeration.
+In our application, we define a new event \code{P2P\_EVT\_KEY} to represent key
+presses:
+
+{\footnotesize
+\begin{verbatim}
+enum {
+    P2P_EVT_KEY = P2P_EVT_NEXT
+};
+\end{verbatim}
+}
+
+\subsubsection{Initialization Callback}
 
 The middleware calls \code{cb\_ini} twice: at the beginning and at the end of
 the loop.
@@ -397,37 +427,22 @@ void cb_ini (int ini) {
 \end{verbatim}
 }
 
-The middleware calls \code{cb\_sim} on every frame to affect the simulation
-state of \code{G} deterministically.
+\subsubsection{Simulation Callback}
+
+The middleware calls \code{cb\_sim} on every frame, passing an application
+event, to affect the simulation state \code{G} deterministically.
 The callback must never perform any side effects, such as stateful calls or
-rendering the frame:
-The callback receives the occurring input event if any.
-There are two predetermined events:
-    \code{P2P\_EVT\_INIT} called at the beginning of the simulation, and
-    \code{P2P\_EVT\_TICK} called at every frame.
-The application-specific events must be declared by the programmer in an
-enumeration.
-In our application, we define a new event \code{P2P\_EVT\_KEY} to represent key
-presses:
-
-{\footnotesize
-\begin{verbatim}
-enum {
-    P2P_EVT_KEY = P2P_EVT_NEXT
-};
-\end{verbatim}
-}
-
-Our callback \code{cb\_sim}
-    (a) resets the rectangle position and speed on \code{INIT},
-    (b) increments the position based on the current speed on \code{TICK}, and
-    (c) modifies the speed based on \code{KEY}:
+rendering frames.
+In our example, we modify the state of the rectangle as follows:
+    (a) reset its position and speed on \code{START},
+    (b) increment its position based on the current speed on \code{TICK}, and
+    (c) modify its speed based on \code{KEY}:
 
 {\footnotesize
 \begin{verbatim}
 void cb_sim (p2p_evt evt) {
     switch (evt.id) {
-        case P2P_EVT_INIT: // resets pos and speed
+        case P2P_EVT_START: // resets pos and speed
             G.x = G.y = G.dx = G.dy = 0;
             break;
         case P2P_EVT_TICK:  // increases position
@@ -448,19 +463,22 @@ void cb_sim (p2p_evt evt) {
 \end{verbatim}
 }
 
-
 The calls to \code{cb\_sim} normally happen during real-time simulation, i.e.,
 while the user is interacting with the application.
 However, if the peer is out of sync, the middleware may ``time travel'' and
 call the simulation many times to go back and forth and catch up with real
 time.
-This is the reason why we define \code{INIT} as an event: time travelling
-requires to simulate, since the 
+This is the reason why we define \code{START} as an event like any other, since
+travelling requires to simulate the execution from the beginning, event by
+event.
 
-This is the reason why \code{cb\_sim} should be split from the rendering
-callback \code{cb\_ren}~\cite{tml.js}.
+\subsubsection{Rendering Callback}
+
+Time travelling is also the reason why \code{cb\_sim} must be split from the
+rendering callback \code{cb\_ren}~\cite{tml.js}, which would otherwise render
+the screen multiple times while travelling.
 %, which the middleware calls only on real-time frames.
-In our example, this callback just needs to redraw the rectangle at the
+In our example, \code{cb\_ren} just needs to redraw the rectangle at the
 current position:
 
 {\footnotesize
@@ -474,13 +492,15 @@ void cb_eff (void) {
 \end{verbatim}
 }
 
-Finally, the \code{cb\_evt} callback is called by the middleware in real time,
-whenever a local SDL event occurs.
+\subsubsection{Events Callback}
+
+The \code{cb\_evt} callback is called by the middleware in real time, whenever
+a local SDL event occurs.
 This callback has two goals:
-    (a) broadcast application events, and
+    (a) map and broadcast application events, and
     (b) provide instant feedback to the user.
-Not all local low-level events may generate application events to be broadcast
-in the network.
+As mentioned previously, not all local low-level events may generate
+application events to be broadcast in the network.
 The callback is allowed to perform side effects, such as modifying the network
 topology, or exhibiting some feedback on the screen.
 In our example, we only generate application events for the 5 key events, and
