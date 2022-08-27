@@ -125,7 +125,7 @@ In Section~\ref{sec.conclusion}, ...
   }
 \end{figure}
 
-\begin{figure*}[t]
+\begin{figure*}[p]
   \centering
   \includegraphics[width=\linewidth]{algos}
   \caption{
@@ -264,6 +264,7 @@ rendering~\cite{tml.alive}.
 
 In this section, we describe the architecture of our middleware and also the
 API in which developers have to conform with.
+%
 The middleware is written in C and relies on the library \emph{SDL}%
 \footnote{SDL: \url{www.libsdl.org}}
 to deal with the network and input events, such as timers, mouse clicks and
@@ -284,6 +285,28 @@ if they were a single mirrored instance.
 At any moment, if a peer pauses the application, all peers are guaranteed to
 pause exactly at the same frame with the rectangle being ``bit-identically'' at
 the same position.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{middleware}
+  \caption{
+    Applications generate asynchronous events and communicate through an API
+    with the middleware.
+    The middleware orchestrates the peers, synchronizing their ticks locally
+    and broadcasting events with a delay.
+    \label{fig.middleware}
+  }
+\end{figure}
+
+In Figure~\ref{fig.middleware}, a peer is depicted as an application that uses
+an API to communicate with the middleware.
+The application itself is not aware of the network and has no direct access to
+the other peers, which communicate transparently through the middleware.
+The application generates asynchronous events that go through the middleware,
+which synchronizes them with a timestamp in the future, such that all peers can
+agree.
+The middleware controls the execution of the application by issuing ticks and
+synchronized events.
 
 The main job of the middleware is to deal with the uncertainties of the
 network in order to preserve the symmetric behavior across peers.
@@ -374,7 +397,6 @@ struct {
     int x,  y;   // position
     int dx, dy;  // direction speed
 } G;
-int main (void) { ... }
 \end{verbatim}
 }
 
@@ -512,11 +534,11 @@ int cb_evt (SDL_Event* sdl, p2p_evt* evt) {
     if (sdl->type == SDL_KEYDOWN) {
         if (sdl->key == <any-of-the-keys>) {
             SDL_DrawImage(<img-of-the-key>);
-            *evt = (p2p_evt) { P2P_EVT_KEY, sdl->key };
+            *evt = (p2p_evt){ P2P_EVT_KEY,sdl->key };
             return 1; // generate application event
         }
     }
-    return 0; // otherwise, does not generate any event
+    return 0; // otherwise, do not generate any event
 }
 \end{verbatim}
 }
@@ -526,8 +548,13 @@ int cb_evt (SDL_Event* sdl, p2p_evt* evt) {
 TODO: simpler than vector clocks, absolute times are correct
 TODO: piggyback SYNC in normal inputs
 
-\subsection{The Time Machine}
-\label{sec.tml.time}
+\subsection{Middleware Orchestration}
+\label{sec.tml.middleware}
+
+We now describe in detail how the middleware orchestrates an application and
+ensures that all peers (a) meet event deadlines, (b) advance in sync in real
+time, and (c) can leave and join the network and remain symmetric.
+
 
 
 - p2p links por fora, como um servico TCP local
