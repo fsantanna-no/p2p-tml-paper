@@ -15,6 +15,7 @@
 \newcommand{\Xnn} {$N{\leftrightarrow}N$\xspace}
 \newcommand{\Xoo} {$1{\leftrightarrow}1$\xspace}
 \newcommand{\Xo}  {$1{\hookleftarrow}$\xspace}
+\newcommand{\lin}[1]{(\emph{ln. #1}\xspace)}
 
 \renewcommand{\theenumi}{\alph{enumi}}
 
@@ -390,6 +391,7 @@ The FPS must be the same in all peers to ensure that the simulation executes
 exactly the same.
 
 \subsubsection{Application State}
+\label{sec.tml.api.state}
 
 The global variable \code{G} must hold the full application state.
 If dynamic allocation is required, it is necessary to hold a finite memory
@@ -407,6 +409,7 @@ struct {
 }
 
 \subsubsection{Application Events}
+\label{sec.tml.api.events}
 
 The application generates events that need to be broadcast to the network so
 that all peers behave the same.
@@ -430,6 +433,7 @@ enum {
 }
 
 \subsubsection{Initialization Callback}
+\label{sec.tml.api.cb_ini}
 
 The middleware calls \code{cb\_ini} twice: at the beginning and at the end of
 the loop.
@@ -456,6 +460,7 @@ void cb_ini (int ini) {
 }
 
 \subsubsection{Simulation Callback}
+\label{sec.tml.api.cb_sim}
 
 The middleware calls \code{cb\_sim} on every frame, passing an application
 event, to affect the simulation state \code{G} deterministically.
@@ -614,60 +619,78 @@ struct {
 
 The middleware main loop \code{p2p\_loop} is responsible for calling the
 application callbacks, and also controlling its timeline.
-To achieve this, the loop continuously checks for network packets, local
-inputs, and time ticks, as follows:
+The loop continuously checks for network packets, local inputs, and time ticks,
+as follows:
 
 {\footnotesize
 \begin{verbatim}
 01  void p2p_loop (...,cb_ini,cb_sim,cb_ren,cb_evt) {
-01    cb_ini(1);
-01    cb_sim(<P2P_EVT_INIT>);
-01
-01    while (<app-running>) {
-01      if (<next-packet>) {
-01        // fast forward if too late
-01        if (<packet-sync-time-future>) {
-01          for (<step-by-step-sleep>) {
-01            p2p_travel(<packet-sync-time>);
-01            cb_ren();
-01          }
-01        }
-01
-01        if (<packet-evt>) {
-01          if (<packet-evt-time-past>) {
-01            for (<step-by-step-sleep>) {
-01              p2p_travel(<packet-evt-time>);
-01              cb_ren();
-01            }
-01            for (<step-by-step-sleep>) {
-01              p2p_travel(<now>);
-01              cb_ren();
-01            }
-01          } else {
-01            cb_sim(<packet-evt>);
-01            cb_eff();
-01          }
-01        }
-01      }
-01
-01      if (<next-input>) {
-01        p2p_evt evt;
-01        if (cb_rec(&evt)) {
-01          p2p_bcast(<future>, &evt);
-01        }
-01      }
-01
-01      if (<next-tick>) {
-01        cb_sim(<P2P_EVT_TICK>);
-01        <take-snapshot-every-XXXms>
-01        cb_ren();
-01      }
-01    }
-01
-01    cb_ini(0);
-01  }
+02    cb_ini(1);
+03    cb_sim(<P2P_EVT_START>);
+04
+05    while (<app-running>) {
+06      if (<next-packet>) {
+07        // fast forward if I'm late
+08        if (<packet-sync-future>) {
+09          p2p_travel(<now>, <packet-sync-time>);
+10        }
+11
+12        // travel back & forth if I'm early
+13        if (<packet-evt-past>) {
+14          p2p_travel(<now>, <packet-evt-time>);
+15          p2p_travel(<packet-evt-time>, <now>);
+16        }
+17
+18        // simulate in real time if I'm on time
+19        if (<packet-evt-ok>) {
+20          cb_sim(<packet-evt>);
+21          cb_ren();
+22        }
+23      }
+24
+25      if (<next-input>) {
+26        // broadcast event from local
+27        p2p_evt evt;
+28        if (cb_evt(&evt)) {
+29          p2p_bcast(<future>, &evt);
+30        }
+31      }
+32
+33      // simulate tick in real time
+34      if (<next-tick>) {
+35        cb_sim(<P2P_EVT_TICK>);
+36        <take-snapshot-every-second>
+37        cb_ren();
+38      }
+39    }
+40
+41    cb_ini(0);
+42  }
 \end{verbatim}
 }
+
+The function receives the application callbacks as arguments \lin{1}
+(Section~\ref{sec.tml.api}).
+It first (and last) calls \code{cb\_ini} \lin{2,41} to initialize (and
+finalize) the application.
+Then, it calls \code{cb\_sim} \lin{3}, passing the event \code{START} to start
+the application in real time
+(Sections~\ref{sec.tml.api.events}~and~\ref{sec.tml.api.cb_sim}).
+The main loop \lin{5--39} checks continuously for network packets \lin{6--23},
+local input events \lin{25--31}, and time ticks \lin{33--38}.
+%
+If we receive a time synchronization packet \code{SYNC} from the future
+\lin{7--10}, then the we fast forward the application to catch up in time
+(Section~\ref{sec.tml}.b).
+If we receive an event that should have been applied in the past \lin{12--16},
+then we travel back and forth (Section~\ref{sec.tml}.a).
+Otherwise, we just apply the event in real time \lin{18--22}
+(Section~\ref{sec.tml.api.cb_sim}).
+
+We detail the function \code{p2p\_travel} further
+
+\subsubsection{The Time Machine}
+\label{sec.tml.middleware.travel}
 
 - async events
 - sync events
