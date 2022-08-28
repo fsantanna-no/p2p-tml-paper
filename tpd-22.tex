@@ -121,6 +121,10 @@ In Section~\ref{sec.conclusion}, ...
   \centering
   \includegraphics[width=\linewidth]{table}
   \caption{
+    Related work regarding
+        (a) how the network is organized,
+        (b) how global time is determined, and
+        (c) how events are propagated and applied.
     \label{fig.table}
   }
 \end{figure}
@@ -140,8 +144,10 @@ In Section~\ref{sec.conclusion}, ...
 
 In this section, we revisit existing solutions for symmetric distributed
 applications.
-We focus on (a) how the network is organized, (b) how global time is
-determined, and (c) how events are propagated and applied.
+We focus on
+    (a) how the network is organized,
+    (b) how global time is determined, and
+    (c) how events are propagated and applied.
 Figure~\ref{fig.table} compares selected works regarding these aspects.
 
 Croquet%
@@ -378,8 +384,8 @@ int main (void) {
 \end{verbatim}
 }
 
-The middleware assumes that each peer is assigned a unique identifier in a
-contiguous range.
+The middleware assumes that each peer assigns to itself a unique identifier in
+a contiguous range.
 The FPS must be the same in all peers to ensure that the simulation executes
 exactly the same.
 
@@ -543,24 +549,141 @@ int cb_evt (SDL_Event* sdl, p2p_evt* evt) {
 \end{verbatim}
 }
 
-\subsection{TODO}
-
-TODO: simpler than vector clocks, absolute times are correct
-TODO: piggyback SYNC in normal inputs
-
 \subsection{Middleware Orchestration}
 \label{sec.tml.middleware}
 
-We now describe in detail how the middleware orchestrates an application and
-ensures that all peers (a) meet event deadlines, (b) advance in sync in real
-time, and (c) can leave and join the network and remain symmetric.
+We now detail how the middleware orchestrates an application and ensures that
+all peers
+    (a) meet event deadlines,
+    (b) advance in sync in real time, and
+    (c) can leave and join the network and remain symmetric.
+
+\subsubsection{Events Broadcasting}
+\label{sec.tml.middleware.events}
+
+As illustrated in Figure~\ref{fig.middleware}, events are broadcast between
+peers with a timestamp in the future such that all peers are able to apply them
+in sync.
+%
+To prevent broadcast cycles, event are tagged with a source peer and sequence
+number.
+Each peer keeps a vector with the highest sequence number it received from each
+other peer, such that lower numbers can be ignored when received.
+Higher numbers update the vector and trigger a broadcast to neighbours.
+Since we rely on TCP connections, it is not possible to receive out-of-order
+sequence numbers from the same source peer.
+%
+As mentioned in Section~\ref{sec.tml.api}, we assume that peers assign
+themselves unique identifiers in a contiguous range.
+The reasons are
+    (a) to fit a \code{uint8\_t} size, and
+    (b) to use a contiguous vector of sequence numbers.
+Therefore, this is not a serious limitation, and a separate mechanism could be
+used for assignment, with few modifications to core of the middleware.
+
+When receiving an unseen event, the middleware also enqueues it in timestamp
+order and calls the application callback \code{cb\_sim} at the appropriate
+time.
+The peers must keep the full queue in memory for two reasons:
+    (a) receiving a late event may reorder the queue and require a time
+        travel, and
+    (b) peers that join the network need to receive all events.
+%
+Therefore, the middleware keeps a queue of ``packets'', which includes the
+event and other metadata:
+
+{\footnotesize
+\begin{verbatim}
+typedef struct {
+    uint8_t  src;       // source peer
+    uint32_t seq;       // sequence number
+    uint32_t tick;      // tick to apply
+    p2p_evt  evt;       // event id + payload
+} p2p_pak;
+
+struct {
+    int i;              // next event to apply
+    int n;              // number of events
+    p2p_pak buf[MAX];   // queue of packets
+} PAKS;
+\end{verbatim}
+}
+
+\subsubsection{The Main Loop}
+\label{sec.tml.middleware.loop}
+
+The middleware main loop \code{p2p\_loop} is responsible for calling the
+application callbacks, and also controlling its timeline.
+To achieve this, the loop continuously checks for network packets, local
+inputs, and time ticks, as follows:
+
+{\footnotesize
+\begin{verbatim}
+01  void p2p_loop (...,cb_ini,cb_sim,cb_ren,cb_evt) {
+01    cb_ini(1);
+01    cb_sim(<P2P_EVT_INIT>);
+01
+01    while (<app-running>) {
+01      if (<next-packet>) {
+01        // fast forward if too late
+01        if (<packet-sync-time-future>) {
+01          for (<step-by-step-sleep>) {
+01            p2p_travel(<packet-sync-time>);
+01            cb_ren();
+01          }
+01        }
+01
+01        if (<packet-evt>) {
+01          if (<packet-evt-time-past>) {
+01            for (<step-by-step-sleep>) {
+01              p2p_travel(<packet-evt-time>);
+01              cb_ren();
+01            }
+01            for (<step-by-step-sleep>) {
+01              p2p_travel(<now>);
+01              cb_ren();
+01            }
+01          } else {
+01            cb_sim(<packet-evt>);
+01            cb_eff();
+01          }
+01        }
+01      }
+01
+01      if (<next-input>) {
+01        p2p_evt evt;
+01        if (cb_rec(&evt)) {
+01          p2p_bcast(<future>, &evt);
+01        }
+01      }
+01
+01      if (<next-tick>) {
+01        cb_sim(<P2P_EVT_TICK>);
+01        <take-snapshot-every-XXXms>
+01        cb_ren();
+01      }
+01    }
+01
+01    cb_ini(0);
+01  }
+\end{verbatim}
+}
+
+- async events
+- sync events
+- real-time sim
+- sync time
+
+advance time locally
+
+TODO: no final falar de a,b,c
+TODO: simpler than vector clocks, absolute times are correct
+TODO: piggyback SYNC in normal inputs
 
 
 
 - p2p links por fora, como um servico TCP local
 - The network topology is dynamic
-
-%\item Peers have contiguous numeric unique identifiers.
 
 %
 - time sync
@@ -594,7 +717,6 @@ We make some assumptions about the network, which are assigned externally to
 the middleware:
 %
 \begin{itemize}
-\item Peers have contiguous numeric unique identifiers.
 \item Peers identifiers are assigned externally to the middleware.
 \item Topology is dynamic, but also assigned externally
 
@@ -607,7 +729,6 @@ For instance,
 
 , which we claim that could be
 solved further:
-- peers have unique identifiers
 - ids are outside
 - topology, dynamic but outside
 - fixed maximum nodes
