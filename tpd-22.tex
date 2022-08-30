@@ -94,6 +94,11 @@ to consider the network latency.
 To deal with events received out of order or too late, a distributed time
 machine can rollback peers to a previous state and reapply events in order and
 in time.
+Our main contribution is the design of a middleware that runs on each peer to
+ensure that all peers
+    (a) meet event deadlines,
+    (b) advance in sync in real time, and
+    (c) can leave and join the network and remain symmetric.
 
 TODO: application, results
 
@@ -280,6 +285,20 @@ The full source code%
 \footnote{TODO}
 is under 500 lines of code.
 
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{move}
+    \caption[XXX] {
+        A moving rectangle is controlled by peers connected indirectly.
+        Users can press \code{↑ ↓ → ←} to change the direction of the
+        rectangle or \code{SPACE} to pause the application.
+        The inputs are applied simultaneously in all peers, as if they were
+        mirrors of a single application.
+        Video: \url{http://youtube.com/TODO}
+        \label{fig.move}
+    }
+\end{figure}
+
 We guide our discussion through the didactic example of Figure~\ref{fig.move},
 in which multiple users use the arrow keys to control the direction of a
 moving rectangle.
@@ -317,7 +336,7 @@ synchronized events.
 
 The main job of the middleware is to deal with the uncertainties of the
 network in order to preserve the symmetric behavior across peers.
-More specifically, the middleware ensures that all peers
+As described in the Introduction, the middleware ensures that all peers
     (a) meet event deadlines,
     (b) advance in sync in real time, and
     (c) can leave and join the network and remain symmetric:
@@ -394,6 +413,8 @@ exactly the same.
 \label{sec.tml.api.state}
 
 The global variable \code{G} must hold the full application state.
+This allows the middleware to take memory snapshots and rollback to a previous
+state.
 If dynamic allocation is required, it is necessary to hold a finite memory
 pool in \code{G} with a custom allocator.
 For instance, the moving rectangle application only requires to hold the
@@ -506,6 +527,7 @@ travelling requires to simulate the execution from the beginning, event by
 event.
 
 \subsubsection{Rendering Callback}
+\label{sec.tml.api.cb_ren}
 
 Time travelling is also the reason why \code{cb\_sim} must be split from the
 rendering callback \code{cb\_ren}~\cite{tml.js}, which would otherwise render
@@ -526,6 +548,7 @@ void cb_eff (void) {
 }
 
 \subsubsection{Events Callback}
+\label{sec.tml.api.cb_evt}
 
 The \code{cb\_evt} callback is called by the middleware in real time, whenever
 a local SDL event occurs.
@@ -659,7 +682,7 @@ as follows:
 33      // simulate tick in real time
 34      if (<next-tick>) {
 35        cb_sim(<P2P_EVT_TICK>);
-36        <take-snapshot-every-second>
+36        <application-snapshot-every-second>
 37        cb_ren();
 38      }
 39    }
@@ -671,70 +694,115 @@ as follows:
 
 The function receives the application callbacks as arguments \lin{1}
 (Section~\ref{sec.tml.api}).
-It first (and last) calls \code{cb\_ini} \lin{2,41} to initialize (and
-finalize) the application.
-Then, it calls \code{cb\_sim} \lin{3}, passing the event \code{START} to start
+We first (and last) call \code{cb\_ini} \lin{2,41} to initialize (and finalize)
+the application.
+Then, we call \code{cb\_sim} \lin{3}, passing the event \code{START} to start
 the application in real time
 (Sections~\ref{sec.tml.api.events}~and~\ref{sec.tml.api.cb_sim}).
 The main loop \lin{5--39} checks continuously for network packets \lin{6--23},
 local input events \lin{25--31}, and time ticks \lin{33--38}.
-%
-If we receive a time synchronization packet \code{SYNC} from the future
-\lin{7--10}, then the we fast forward the application to catch up in time
-(Section~\ref{sec.tml}.b).
+
+Regarding network packets, if we receive a time synchronization packet
+\code{SYNC} from the future \lin{7--10}, then the we fast forward the
+application to catch up in time (Section~\ref{sec.tml}.b).
 If we receive an event that should have been applied in the past \lin{12--16},
 then we travel back and forth (Section~\ref{sec.tml}.a).
 Otherwise, we just apply the event in real time \lin{18--22}
 (Section~\ref{sec.tml.api.cb_sim}).
-
-We detail the function \code{p2p\_travel} further
+We detail the function \code{p2p\_travel} in
+Section~\ref{sec.tml.middleware.travel}.
+%
+Regarding local inputs, we call \code{cb\_evt} \lin{26--30} to signal if the
+event should be broadcast, also transforming it to an application event
+(Section~\ref{sec.tml.api.cb_evt}).
+%
+Regarding time tick, we call \code{cb\_sim} and \code{cb\_ren} in real time
+\lin{33--38}.
+The middleware also takes periodic snapshots of the application state to
+rollback and assist time travelling (Section~\ref{sec.tml.api.state}).
 
 \subsubsection{The Time Machine}
 \label{sec.tml.middleware.travel}
 
-- async events
-- sync events
-- real-time sim
-- sync time
+The last important mechanism of the middleware is the time machine, which
+allows to move the application back and forth in time:
 
-advance time locally
+{\footnotesize
+\begin{verbatim}
+01  void p2p_travel (int from, int to) {
+02    for (i=from..to) {
+03      int bef = <tick-of-snapshot-before-i>
+04      <restore-snapshot-at-bef>
+05      for (j=bef..i) {
+06        cb_sim(<tick-or-evt-at-j>)
+07      }
+08      cb_ren();
+09      <delay-ms>
+10    }
+11  }
+\end{verbatim}
+}
 
-TODO: no final falar de a,b,c
+The function \code{p2p\_travel} time travels, starting at tick \code{from},
+tick by tick, until it reaches tick \code{to} \lin{2--10}.
+The loop can go in any direction in time, i.e., \code{from} may be higher than
+\code{to}.
+At each step, we need to find the tick \code{bef} with the closest past
+snapshot \lin{3}, restore it \lin{4}, and than simulate the remaining steps
+from the snapshot to the desired tick \lin{5--7}.
+We also exhibit each step with a small delay \lin{8--9} so that users
+experience smooth time transitions.
+
+\subsubsection{Summary}
+\label{sec.tml.middleware.summary}
+
+This section provided an overview of the middleware implementation to answer,
+in concrete terms, how it ensures the desired properties enumerated in the
+Introduction and at the beginning of Section~\ref{sec.tml.middleware}:
+    (a) peers meet event deadlines either in real time \lin{18--21} or
+        travelling back and forth in time \lin{12--16}
+        (Section~\ref{sec.tml.middleware.loop});
+    (b) peers synchronize their clocks with periodic \code{SYNC} packets that
+        fast forwards late peers \lin{7--10}
+        (Section~\ref{sec.tml.middleware.loop}); and
+    (c) peers can join the network at any time and still catch up in time by
+        receiving the full event history
+        (Section~\ref{sec.tml.middleware.events}).
+
+\section{Evaluation}
+\label{sec.eval}
+
+In this section, we evaluate if our design meets its goals to ensure that all
+peers (a) meet event deadlines, (b) advance in sync in real time, and (c) can
+leave and join the network and remain symmetric.
+%
+For each of these goals, we simulate different network scenarios varying the
+(i) topology, (j) latency, (k) churn, and (k) frequency and (m) deadlines of
+events.
+For each scenario, we measure (x) the recurrence of time travels, (y) the
+real-time pace of peers, and (z) the correctness of unstable peers, such that
+they validate goals (a), (b), and (c), respectively.
+
+- VARIABLES
+- number of nodes
+- topology
+    - distance b/w nodes
+    - number of edges
+- latency b/w nodes
+- freq of events
+- ~FPS~
+- future delta
+
+- RESULTS
+- time travels
+- ~real time~
+- ~enter leave~ (catches up?)
+
+\section{TODO}
+
 TODO: simpler than vector clocks, absolute times are correct
-TODO: piggyback SYNC in normal inputs
-
-
 
 - p2p links por fora, como um servico TCP local
-- The network topology is dynamic
-
-%
-- time sync
-
-The middleware handles:
-- time sync
-- disc / conn
-- late event
-
-\begin{figure}[t]
-    \centering
-    \includegraphics[width=\linewidth]{move}
-    \caption[XXX] {
-        A moving rectangle is controlled by peers connected indirectly.
-        Users can press \code{↑ ↓ → ←} to change the direction of the
-        rectangle or \code{SPACE} to pause the application.
-        The inputs are applied simultaneously in all peers, as if they were
-        mirrors of a single application.
-        Video: \url{http://youtube.com/TODO}
-        \label{fig.move}
-    }
-\end{figure}
-
-- walk back-forth
-- vector clocks
-- dynamic net
-- re-connect
-- late join
 
 We make some assumptions about the network, which are assigned externally to
 the middleware:
@@ -763,9 +831,6 @@ For instance, latency is only a constant, no problem being a variable
 
 \section{Application}
 \label{sec.app}
-
-\section{Evaluation}
-\label{sec.eval}
 
 \section{Conclusion}
 \label{sec.conclusion}
