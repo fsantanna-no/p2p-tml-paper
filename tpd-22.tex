@@ -772,82 +772,72 @@ Introduction and at the beginning of Section~\ref{sec.tml.middleware}:
 \section{Evaluation}
 \label{sec.eval}
 
-In this section, we simulate an application varying the network topology,
-latency, and churn, as well as the frequency and deadlines of events.
-We use a single machine .
-We then evaluate if our design meets its goals as follows:
+In this section, we evaluate if our design meets its goals to ensure that all
+peers (a) meet event deadlines, (b) advance in sync in real time, and (c) can
+leave and join the network and remain symmetric.
+%
+We simulate an application varying the network topology, latency, and churn, as
+well as the frequency and deadlines of events.
+%
+We then measure (a) the recurrence of time travels, (b) the real-time pace of
+peers, and (c) the correctness of unstable peers, such that they validate our
+goals above, respectively.
+
+Regarding (a), if a peer experiences a time travel, it means that it received
+an event after its deadline.
+We can count all time travel occurrences during the simulation.
+%
+Regarding (b), we can use an absolute simulation clock to track, in real time,
+the pace of each peer in comparison to a reference peer most advanced in time.
+%
+Regarding (c), we can TODO specific peers and very that they TODO within a
+short period of time.
+
+For instance, if the reference peer signals $T$ and then a peer signals $T-dt$,
+than we.
+That would be the case when a source peer generates an event with a small
+deadline in comparison to the latency to the farthest destination peer.
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\linewidth]{topo}
+  \caption{
+    \label{fig.topo}
+    TODO
+  }
+\end{figure*}
+
+We simulate the application with $21$ peers using the mixed topology of
+Figure~\ref{fig.topo}, with straight lines, long cycles, and short cycles.
+%
+In order to have an absolute clock to compare peers, we use a single machine
+to simulate all peers, and output their logs to a single file.
+We TODO the network latency and clock skew using TODO and TODO.
+
+We now detail why we measure the properties above and how we instrument the
+middleware implementation:
 %
 \begin{enumerate}
-\item \textbf{Event Deadlines:}
-We measure the recurrence of time travels among peers.
-If a peer experiences a time travel, it means that it received an event after
-its deadline.
-For instance, that would be the case when the source peer generates an event
-with a small deadline in comparison to the latency to the farthest destination
-peer.
-More concretely, we teak the middleware implementation to count time travel
-ticks.
+%
+\item \textbf{Recurrence of time travels:}
+We teak the middleware implementation to count time travel ticks.
 We then measure the percentage of the sum of all time travels ticks over the to
 the total simulation ticks (e.g., $1\%$, if all peers sum $1000$ time travel
 ticks over $100k$ accumulated simulation ticks).
 %
-\item \textbf{Time Synchronization:}
-We measure if peers advance in sync in real time using as a reference the peer
-most advanced in time.
-We start each peer with a random delay to force a time mismatch, and then
-verify if they synchronize and remain synchronized during the whole simulation.
-More concretely, we teak the middleware to .
+\item \textbf{Real-time pace of peers:}
+We start each peer with a random delay of up to $10s$ to force a time mismatch,
+and then verify if they synchronize and remain synchronized during the whole
+simulation.
+We teak the middleware to output its current tick every $100ms$.
 
 More concretely, we measure the percentage o ticks diverging from the reference
 peer (e.g., $1\%$, if .
 
-converge 
-
-, and (c) can
-Since peers run in different machines, their timelines will inevitably be out
-of sync because:
-    (a) applications are launched locally at different times, and
-    (b) internal clocks may diverge over time.
-The middleware assumes the maximum time among all peers the be the
-``correct real time'', so that other peers must fast forward to catch up with
-it.
-Therefore, in order to determine the maximum time and synchronize the clocks,
-the middleware proceeds as follows:
-    (a) peers broadcast \code{SYNC} events periodically with their local
-        times, and
-    (b) if a peer is behind a received \code{SYNC}, it advances its frames
-        proportionally faster to catch up in time.
 %
-\item \textbf{Peer Churn:}
-Considering that we target peer-to-peer networks, it is important that the
-middleware can handle arrival and departure of peers seamlessly.
-When a peer leaves the network, nothing needs to be done.
-The middleware just needs to ensure that a peer that joins the network receives
-all events in order, which is trivial since they all hold an absolute
-timestamp.
 \end{enumerate}
 
- to ensure that all
-peers (a) meet event deadlines, (b) advance in sync in real time, and (c) can
-leave and join the network and remain symmetric.
-%
-For each of these goals, we measure (a) the recurrence of time travels, (b) the
-real-time pace of peers, and (c) the correctness of unstable peers.
-
-
-, respectively.
-
-, such that
-they validate goals (a), (b), and (c), respectively.
-
-For each of these goals, we simulate different network scenarios varying the
-(i) topology, (j) latency, (k) churn, and (k) frequency and (m) deadlines of
-events.
-For each scenario, we measure (x) the recurrence of time travels, (y) the
-real-time pace of peers, and (z) the correctness of unstable peers, such that
-they validate goals (a), (b), and (c), respectively.
-
-- start with random deltas
+We run the simulation for 5 minutes and, since we start the measures after 1 minute
 
 - VARIABLES
 - number of nodes
@@ -864,10 +854,11 @@ they validate goals (a), (b), and (c), respectively.
 - ~real time~
 - ~enter leave~ (catches up?)
 
-- use of space for snapshots
-    - limit to go back?
-    - super nodes? (when connecting, pass tick, may close if tick<last)
+-- use of space for snapshots
+-    - limit to go back?
+-    - super nodes? (when connecting, pass tick, may close if tick<last)
 
+-- start with random deltas
 \section{TODO}
 
 TODO: simpler than vector clocks, absolute times are correct
