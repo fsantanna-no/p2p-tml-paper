@@ -772,9 +772,9 @@ Introduction and at the beginning of Section~\ref{sec.tml.middleware}:
 \section{Evaluation}
 \label{sec.eval}
 
-In this section, we evaluate if our design meets its goals to ensure that all
-peers (a) meet event deadlines, (b) advance in sync in real time, and (c) can
-leave and join the network and remain symmetric.
+In this section, we evaluate if (and to what extent) our design meets its goals
+to ensure that all peers (a) meet event deadlines, (b) advance in sync in real
+time, and (c) can leave and join the network and remain symmetric.
 %
 We simulate an application varying the network topology, latency, and churn, as
 well as the frequency and deadlines of events.
@@ -785,18 +785,14 @@ goals above, respectively.
 
 Regarding (a), if a peer experiences a time travel, it means that it received
 an event after its deadline.
-We can count all time travel occurrences during the simulation.
+We count all time travel occurrences during the simulation.
 %
-Regarding (b), we can use an absolute simulation clock to track, in real time,
-the pace of each peer in comparison to a reference peer most advanced in time.
+Regarding (b), we use an absolute simulation clock to track, in real time, the
+execution pace of each peer in comparison to a reference peer most advanced in
+time.
 %
-Regarding (c), we can TODO specific peers and very that they TODO within a
-short period of time.
-
-For instance, if the reference peer signals $T$ and then a peer signals $T-dt$,
-than we.
-That would be the case when a source peer generates an event with a small
-deadline in comparison to the latency to the farthest destination peer.
+Regarding (c), we designate some peers to leave and join the network
+periodically to assert that they catch up with the other peers in real time.
 
 \begin{figure*}[t]
   \centering
@@ -808,25 +804,31 @@ deadline in comparison to the latency to the farthest destination peer.
 \end{figure*}
 
 We simulate the application with $21$ peers using the mixed topology of
-Figure~\ref{fig.topo}, with straight lines, long cycles, and short cycles.
+Figure~\ref{fig.topo}, with peers organized in straight lines, long cycles, and
+short cycles.
 %
 In order to have an absolute clock to compare peers, we use a single machine
-to simulate all peers, and output their logs to a single file.
-We TODO the network latency and clock skew using TODO and TODO.
+to simulate all peers, and merge their logs into a single file constituting a
+shared timeline.
+%
+We simulate the network latency and clock drift in software with random delays.
 
-We now detail why we measure the properties above and how we instrument the
-middleware implementation:
+We now detail how we instrument the middleware implementation measure the
+properties above:
 %
 \begin{enumerate}
 %
 \item \textbf{Recurrence of time travels:}
-We teak the middleware implementation to count time travel ticks.
-We then measure the percentage of the sum of all time travels ticks over the to
-the total simulation ticks (e.g., $1\%$, if all peers sum $1000$ time travel
-ticks over $100k$ accumulated simulation ticks).
+Every time a peer is ahead of time and needs to travel back, we output its id
+and how much ticks it needs to travel back.
+At the end, we measure the percentage of the sum of all time travel ticks over
+the total simulation ticks.
+As an example, if all peers sum $1000$ time travel ticks over $100k$
+accumulated simulation ticks, then the final measure is $1\%$.
 %
 \item \textbf{Real-time pace of peers:}
-We start each peer with a random delay of up to $10s$ to force a time mismatch,
+We start each peer with a random delay of up to $10s$ to force a time mismatch.
+We also force exaggerated clock drifts in random peers ($1ms$ every $1h$).
 and then verify if they synchronize and remain synchronized during the whole
 simulation.
 We teak the middleware to output its current tick every $100ms$.
@@ -836,6 +838,11 @@ peer (e.g., $1\%$, if .
 
 %
 \end{enumerate}
+
+For instance, if the reference peer signals $T$ and then a peer signals $T-dt$,
+than we.
+That would be the case when a source peer generates an event with a small
+deadline in comparison to the latency to the farthest destination peer.
 
 We run the simulation for 5 minutes and, since we start the measures after 1 minute
 
