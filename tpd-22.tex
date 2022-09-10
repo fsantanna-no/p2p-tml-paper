@@ -799,19 +799,23 @@ periodically to assert that they catch up with the other peers in real time.
   \includegraphics[width=\linewidth]{topo}
   \caption{
     \label{fig.topo}
-    TODO
+    Network topology: 21 peers organized as a straight line ($0--3$), a simple
+    cycle ($3--8$), a second straight line ($8--11$), a full connected cycle
+    ($12--17$), and a third straight line ($17--20$).
+    An optional link ($0,20$) creates a long cycle in the network.
   }
 \end{figure*}
 
 We simulate the application with $21$ peers using the mixed topology of
-Figure~\ref{fig.topo}, with peers organized in straight lines, long cycles, and
-short cycles.
+Figure~\ref{fig.topo}, with peers organized in straight lines and cycles.
 %
-In order to have an absolute clock to compare peers, we use a single machine
-to simulate all peers, and merge their logs into a single file constituting a
+In order to have an absolute clock, we use a single machine to simulate all
+peers, allowing us to merge their logs into a single file with a comparable
 shared timeline.
 %
-We simulate the network latency and clock drift in software with random delays.
+We simulate the network latency in software with random delays.
+
+Figure~\ref{TODO} results...
 
 We now detail how we instrument the middleware implementation measure the
 properties above:
@@ -828,16 +832,23 @@ accumulated simulation ticks, then the final measure is $1\%$.
 %
 \item \textbf{Real-time pace of peers:}
 We start each peer with a random delay of up to $10s$ to force a time mismatch.
-We also force exaggerated clock drifts in random peers ($1ms$ every $1h$).
+Each peer outputs its current tick continuously, allowing us to compare them
+in the shared timeline.
+Each time we see a greater tick, we count how many smaller ticks from other
+peers appear in the timeline, which means that they are ...
+\item \textbf{Correctness of unstable peers:}
+- state (even for stable peers)
+- time
+%
+\end{enumerate}
+
+After $Xs$, .
 and then verify if they synchronize and remain synchronized during the whole
 simulation.
 We teak the middleware to output its current tick every $100ms$.
 
 More concretely, we measure the percentage o ticks diverging from the reference
 peer (e.g., $1\%$, if .
-
-%
-\end{enumerate}
 
 For instance, if the reference peer signals $T$ and then a peer signals $T-dt$,
 than we.
