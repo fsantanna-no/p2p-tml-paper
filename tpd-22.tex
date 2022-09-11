@@ -87,8 +87,8 @@ nodes and determine the shared timeline.
 
 In this work, we propose \emph{symmetric peer-to-peer applications}, which
 do not rely on central servers for coordination.
-Nodes in the application form a dynamic graph network and communicate only
-with direct neighbours.
+Peers in the application form a dynamic graph network and communicate only
+with direct neighbours, as a typical unstructured peer-to-peer network.
 Events are flooded in the graph and are triggered locally with a small delay
 to consider the network latency.
 To deal with events received out of order or too late, a distributed time
@@ -359,7 +359,8 @@ execution from the beginning (or from a snapshot in between).
 Since peers run in different machines, their timelines will inevitably be out
 of sync because:
     (a) applications are launched locally at different times, and
-    (b) internal clocks may diverge over time.
+    (b) internal clocks may diverge over time (e.g., from rollbacks or timer
+        polling inaccuracies).
 The middleware assumes the maximum time among all peers the be the
 ``correct real time'', so that other peers must fast forward to catch up with
 it.
@@ -373,10 +374,12 @@ the middleware proceeds as follows:
 \item \textbf{Peer Churn:}
 Considering that we target peer-to-peer networks, it is important that the
 middleware can handle arrival and departure of peers seamlessly.
-When a peer leaves the network, nothing needs to be done.
-The middleware just needs to ensure that a peer that joins the network receives
-all events in order, which is trivial since they all hold an absolute
-timestamp.
+Note that high churn may lead to intermittent network partitions.
+Given our unstructured approach, nothing needs to be done when a peer leaves
+the network.
+However, when a peer joins the network, the middleware just needs to ensure
+that it receives all events in order, which is trivial since they all hold an
+absolute timestamp.
 \end{enumerate}
 
 \subsection{The Programming API}
@@ -816,8 +819,9 @@ shared timeline.
 We simulate the network latency in software with random delays.
 
 Figure~\ref{TODO} results...
-
-We now detail how we instrument the middleware implementation measure the
+- colors indicate feasibility
+%
+We now detail how we instrument the middleware implementation to measure the
 properties above:
 %
 \begin{enumerate}
@@ -826,16 +830,27 @@ properties above:
 Every time a peer is ahead of time and needs to travel back, we output its id
 and how much ticks it needs to travel back.
 At the end, we measure the percentage of the sum of all time travel ticks over
-the total simulation ticks.
+the total simulation ticks (\code{TODO} in Figure~\ref{TODO}).
 As an example, if all peers sum $1000$ time travel ticks over $100k$
 accumulated simulation ticks, then the final measure is $1\%$.
 %
 \item \textbf{Real-time pace of peers:}
-We start each peer with a random delay of up to $10s$ to force a time mismatch.
+Every time a peer receives \code{SYNC} packets and is behind, we output its id
+and how much ticks it needs to fast forward.
+At the end, we measure the percentage of the sum of all forward ticks over the
+total simulation ticks (\code{TODO} in Figure~\ref{TODO}).
+As an example, if all peers sum $1000$ forward ticks over $100k$ accumulated
+simulation ticks, then the final measure is $1\%$.
+%
+We also start each peer with a random delay of up to $10s$ to force a time
+mismatch.
+%
 Each peer outputs its current tick continuously, allowing us to compare them
 in the shared timeline.
-Each time we see a greater tick, we count how many smaller ticks from other
-peers appear in the timeline, which means that they are ...
+Each time we see a greater tick never seen in the timeline before, we count
+smaller ticks from other peers (considering latency), which would constitute
+time violations (\code{TODO} in Figure~\ref{TODO}).
+We expect this counter to be close to zero considering the whole execution.
 \item \textbf{Correctness of unstable peers:}
 - state (even for stable peers)
 - time
@@ -856,6 +871,8 @@ That would be the case when a source peer generates an event with a small
 deadline in comparison to the latency to the farthest destination peer.
 
 We run the simulation for 5 minutes and, since we start the measures after 1 minute
+
+- check if all ticks of all peers are in the same state
 
 - VARIABLES
 - number of nodes
