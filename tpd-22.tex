@@ -783,7 +783,7 @@ We simulate an application varying the network topology, latency, and churn, as
 well as the frequency and deadlines of events.
 %
 We then measure (a) the recurrence of time travels, (b) the real-time pace of
-peers, and (c) the correctness of unstable peers, such that they validate our
+peers, and (c) the recoverability from churns, such that they validate our
 goals above, respectively.
 
 Regarding (a), if a peer experiences a time travel, it means that it received
@@ -795,7 +795,8 @@ execution pace of each peer in comparison to a reference peer most advanced in
 time.
 %
 Regarding (c), we designate some peers to leave and join the network
-periodically to assert that they catch up with the other peers in real time.
+periodically, possibly creating partitions, to assert that they all catch up in
+real time.
 
 \begin{figure*}[t]
   \centering
@@ -850,10 +851,14 @@ in the shared timeline.
 Each time we see a greater tick never seen in the timeline before, we count
 smaller ticks from other peers (considering latency), which would constitute
 time violations (\code{TODO} in Figure~\ref{TODO}).
-We expect this counter to be close to zero considering the whole execution.
+We expect this counter to be close to zero even considering the whole
+simulation.
+%
 \item \textbf{Correctness of unstable peers:}
 - state (even for stable peers)
 - time
+- remove 13 (nao partition) e 10 (partition)
+- qto tempo leva para sync
 %
 \end{enumerate}
 
