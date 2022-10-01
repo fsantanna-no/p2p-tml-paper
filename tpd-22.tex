@@ -16,6 +16,7 @@
 \newcommand{\Xoo} {$1{\leftrightarrow}1$\xspace}
 \newcommand{\Xo}  {$1{\hookleftarrow}$\xspace}
 \newcommand{\lin}[1]{(\emph{ln. #1}\xspace)}
+\newcommand{\linx}[1]{\emph{ln. #1}\xspace}
 
 \renewcommand{\theenumi}{\alph{enumi}}
 
@@ -329,8 +330,8 @@ an API to communicate with the middleware.
 The application itself is not aware of the network and has no direct access to
 the other peers, which communicate transparently through the middleware.
 The application generates asynchronous events that go through the middleware,
-which synchronizes them with a timestamp in the future, such that all peers can
-satisfy.
+which synchronizes them with a timestamp scheduled to the future, such that all
+peers can satisfy.
 The middleware controls the execution of the application by issuing ticks and
 synchronized events.
 
@@ -592,28 +593,26 @@ all peers
     (b) advance in sync in real time, and
     (c) can leave and join the network and remain symmetric.
 
-\subsubsection{Events Broadcasting}
+\subsubsection{Event Broadcasting}
 \label{sec.tml.middleware.events}
 
 As illustrated in Figure~\ref{fig.middleware}, events are broadcast between
-peers with a timestamp in the future such that all peers are able to apply them
-in sync.
+peers with a timestamp scheduled to the future such that all peers are able to
+apply them in sync.
 %
-To prevent broadcast cycles, event are tagged with a source peer and sequence
-number.
-Each peer keeps a vector with the highest sequence number it received from each
-other peer, such that lower numbers can be ignored when received.
-Higher numbers update the vector and trigger a broadcast to neighbours.
+To prevent broadcast cycles, each peer keeps a vector with the highest
+timestamp it received from each other peer, such that lower numbers can be
+ignored when received.
 Since we rely on TCP connections, it is not possible to receive out-of-order
-sequence numbers from the same source peer.
+timestamps attached to a given source peer.
+When the middleware receives a higher number from a given peer, it updates its
+vector position and triggers a broadcast to neighbours.
 %
 As mentioned in Section~\ref{sec.tml.api}, we assume that peers assign
-themselves unique identifiers in a contiguous range.
-The reasons are
-    (a) to fit a \code{uint8\_t} size, and
-    (b) to use a contiguous vector of sequence numbers.
-Therefore, this is not a serious limitation, and a separate mechanism could be
-used for assignment, with few modifications to core of the middleware.
+themselves unique identifiers in a contiguous range, such that they fit in a
+contiguous vector of timestamps.
+Therefore, this is not a severe limitation, and a separate mechanism could be
+used for assignments, with few modifications to core of the middleware.
 
 When receiving an unseen event, the middleware also enqueues it in timestamp
 order and calls the application callback \code{cb\_sim} at the appropriate
@@ -630,7 +629,6 @@ event and other metadata:
 \begin{verbatim}
 typedef struct {
     uint8_t  src;       // source peer
-    uint32_t seq;       // sequence number
     uint32_t tick;      // tick to apply
     p2p_evt  evt;       // event id + payload
 } p2p_pak;
@@ -654,31 +652,31 @@ as follows:
 {\footnotesize
 \begin{verbatim}
 01  void p2p_loop (...,cb_ini,cb_sim,cb_ren,cb_evt) {
-02    cb_ini(1);
+02    cb_ini(1);    // initialization
 03    cb_sim(<P2P_EVT_START>);
 04
 05    while (<app-running>) {
-06      if (<next-packet>) {
+06      if (<next-network-packet>) {
 07        // fast forward if I'm late
 08        if (<packet-sync-future>) {
-09          p2p_travel(<now>, <packet-sync-time>);
+09          p2p_travel(<now>, <packet-sync-time>, <speed>);
 10        }
 11
 12        // travel back & forth if I'm early
 13        if (<packet-evt-past>) {
-14          p2p_travel(<now>, <packet-evt-time>);
-15          p2p_travel(<packet-evt-time>, <now>);
+14          p2p_travel(<now>, <packet-evt-time>, <speed>);
+15          p2p_travel(<packet-evt-time>, <now>, <speed>);
 16        }
 17
-18        // simulate in real time if I'm on time
+18        // real time if I'm on time
 19        if (<packet-evt-ok>) {
 20          cb_sim(<packet-evt>);
 21          cb_ren();
 22        }
 23      }
 24
-25      if (<next-input>) {
-26        // broadcast event from local
+25      if (<next-local-input>) {
+26        // broadcast local event
 27        p2p_evt evt;
 28        if (cb_evt(&evt)) {
 29          p2p_bcast(<future>, &evt);
@@ -686,14 +684,14 @@ as follows:
 31      }
 32
 33      // simulate tick in real time
-34      if (<next-tick>) {
+34      if (<next-local-tick>) {
 35        cb_sim(<P2P_EVT_TICK>);
 36        <application-snapshot-every-second>
 37        cb_ren();
 38      }
 39    }
 40
-41    cb_ini(0);
+41    cb_ini(0);    // finalization
 42  }
 \end{verbatim}
 }
@@ -709,8 +707,8 @@ The main loop \lin{5--39} checks continuously for network packets \lin{6--23},
 local input events \lin{25--31}, and time ticks \lin{33--38}.
 
 Regarding network packets, if we receive a time synchronization packet
-\code{SYNC} from the future \lin{7--10}, then the we fast forward the
-application to catch up in time (Section~\ref{sec.tml}.b).
+\code{SYNC} from the future \lin{7--10}, then we fast forward the application
+to catch up in time (Section~\ref{sec.tml}.b).
 If we receive an event that should have been applied in the past \lin{12--16},
 then we travel back and forth (Section~\ref{sec.tml}.a).
 Otherwise, we just apply the event in real time \lin{18--22}
@@ -722,10 +720,10 @@ Regarding local inputs, we call \code{cb\_evt} \lin{26--30} to signal if the
 event should be broadcast, also transforming it to an application event
 (Section~\ref{sec.tml.api.cb_evt}).
 %
-Regarding time tick, we call \code{cb\_sim} and \code{cb\_ren} in real time
+Regarding time ticks, we call \code{cb\_sim} and \code{cb\_ren} in real time
 \lin{33--38}.
 The middleware also takes periodic snapshots of the application state to
-rollback and assist time travelling (Section~\ref{sec.tml.api.state}).
+optimize time travelling (Section~\ref{sec.tml.api.state}).
 
 \subsubsection{The Time Machine}
 \label{sec.tml.middleware.travel}
@@ -735,7 +733,7 @@ allows to move the application back and forth in time:
 
 {\footnotesize
 \begin{verbatim}
-01  void p2p_travel (int from, int to) {
+01  void p2p_travel (int from, int to, int ms) {
 02    for (i=from..to) {
 03      int bef = <tick-of-snapshot-before-i>
 04      <restore-snapshot-at-bef>
@@ -749,14 +747,14 @@ allows to move the application back and forth in time:
 \end{verbatim}
 }
 
-The function \code{p2p\_travel} time travels, starting at tick \code{from},
-tick by tick, until it reaches tick \code{to} \lin{2--10}.
-The loop can go in any direction in time, i.e., \code{from} may be higher than
+The function \code{p2p\_travel} time travels the application, starting at tick
+\code{from}, tick by tick, until it reaches tick \code{to} \lin{2--10}.
+The loop can travel in both directions, i.e., \code{from} may be higher than
 \code{to}.
 At each step, we need to find the tick \code{bef} with the closest past
 snapshot \lin{3}, restore it \lin{4}, and than simulate the remaining steps
 from the snapshot to the desired tick \lin{5--7}.
-We also exhibit each step with a small delay \lin{8--9} so that users
+We also exhibit each step with a small \code{ms} delay \lin{8--9} so that users
 experience smooth time transitions.
 
 \subsubsection{Summary}
@@ -766,11 +764,11 @@ This section provided an overview of the middleware implementation to answer,
 in concrete terms, how it ensures the desired properties enumerated in the
 Introduction and at the beginning of Section~\ref{sec.tml.middleware}:
     (a) peers meet event deadlines either in real time \lin{18--21} or
-        travelling back and forth in time \lin{12--16}
-        (Section~\ref{sec.tml.middleware.loop});
+        travelling back and forth in time
+        (\linx{12--16} / \ref{sec.tml.middleware.loop});
     (b) peers synchronize their clocks with periodic \code{SYNC} packets that
-        fast forwards late peers \lin{7--10}
-        (Section~\ref{sec.tml.middleware.loop}); and
+        fast forwards late peers
+        (\linx{7--10} / \ref{sec.tml.middleware.loop}); and
     (c) peers can join the network at any time and still catch up in time by
         receiving the full event history
         (Section~\ref{sec.tml.middleware.events}).
@@ -782,8 +780,8 @@ In this section, we evaluate if (and to what extent) our design meets its goals
 to ensure that all peers (a) meet event deadlines, (b) advance in sync in real
 time, and (c) can leave and join the network and remain symmetric.
 %
-We simulate an application varying the network topology, latency, and churn, as
-well as the frequency and deadlines of events.
+We simulate an application varying the network latency and churn, as well as
+the frequency and deadlines of events.
 %
 We then measure (a) the recurrence of time travels, (b) the real-time pace of
 peers, and (c) the recoverability from churns, such that they validate our
@@ -791,24 +789,26 @@ goals above, respectively.
 
 Regarding (a), if a peer experiences a time travel, it means that it received
 an event after its deadline.
-We count all time travel occurrences during the simulation.
+We then count all time travel occurrences during the simulation.
 %
 Regarding (b), we use an absolute simulation clock to track, in real time, the
-execution pace of each peer in comparison to the reference peer, which is the
-one most advanced in time.
+execution pace of each peer.
+% in comparison to the reference peer, which is the one most advanced in time.
+We then count the mismatches between the clocks.
 %
 Regarding (c), we make peers leave and join the network periodically, possibly
-creating partitions, and assert that they all catch up in real time.
+creating partitions.
+We then assert that they all catch up in real time.
 
 \begin{figure*}[t]
   \centering
   \includegraphics[width=\linewidth]{topo}
   \caption{
     \label{fig.topo}
-    Network topology: 21 peers organized as a straight line ($0--3$), a simple
-    cycle ($3--8$), a second straight line ($8--11$), a full connected cycle
-    ($12--17$), and a third straight line ($17--20$).
-    An optional link ($0,20$) creates a long cycle in the network.
+    Network topology: 21 peers organized as a straight line ($0-3$), a simple
+    cycle ($3-8$), a second straight line ($8-11$), a full connected cycle
+    ($12-17$), and a third straight line ($17-20$).
+    %An optional link ($0,20$) creates a long cycle in the network.
   }
 \end{figure*}
 
@@ -836,6 +836,7 @@ At the end, we measure the percentage of the sum of all time travel ticks over
 the total simulation ticks (\code{TODO} in Figure~\ref{TODO}).
 As an example, if all peers sum $1000$ time travel ticks over $100k$
 accumulated simulation ticks, then the final measure is $1\%$.
+TODO: in the figure, we consider range a-b, c-d...
 %
 \item \textbf{Real-time pace of peers:}
 Every time a peer receives \code{SYNC} packets and is behind, we output its id
@@ -855,6 +856,8 @@ smaller ticks from other peers (considering latency), which would constitute
 time violations (\code{TODO} in Figure~\ref{TODO}).
 We expect this counter to be close to zero even considering the whole
 simulation.
+TODO: in the figure, we consider range a-b, c-d...
+TODO: in comparison to the reference peer, which is the one most advanced in time.
 %
 \item \textbf{Correctness of unstable peers:}
 We run a separate simulation in which, for every $100s$, each peer remains
@@ -865,6 +868,7 @@ of sync, which need to be merged and resynchronized constantly.
 We measure
     - state (even for stable peers)
     - qto tempo leva para sync
+TODO: in the figure, we consider range a-b, c-d...
 %
 \end{enumerate}
 
