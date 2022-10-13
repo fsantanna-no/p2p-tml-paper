@@ -780,8 +780,8 @@ In this section, we evaluate if (and to what extent) our design meets its goals
 to ensure that all peers (a) meet event deadlines, (b) advance in sync in real
 time, and (c) can leave and join the network and remain symmetric.
 %
-We simulate an application varying the network latency and churn, as well as
-the frequency and deadlines of events.
+We simulate an application varying the network latency and peer churn, as well
+as the frequency and deadlines of events.
 %
 We then measure (a) the recurrence of time travels, (b) the real-time pace of
 peers, and (c) the recoverability from churns, such that they validate our
@@ -798,7 +798,7 @@ We then count the mismatches between the clocks.
 %
 Regarding (c), we make peers leave and join the network periodically, possibly
 creating partitions.
-We then assert that they all catch up in real time.
+We then assert that they all catch up in real time within a short period.
 
 \begin{figure*}[t]
   \centering
@@ -814,18 +814,48 @@ We then assert that they all catch up in real time.
 
 We simulate the application with $21$ peers using the mixed topology of
 Figure~\ref{fig.topo}, with peers organized in straight lines and cycles.
+The topology has an average of 5 hops between peers (e.g., \code{4--16} are 7
+hops away).
 %
 In order to have an absolute clock, we use a single machine to simulate all
 peers, allowing us to merge their logs into a single file with a comparable
 shared timeline.
 %
-We simulate the network latency in software with random delays.
+We use \emph{NetEm}~\cite{netem} to simulate the network latency with a normal
+distribution (e.g., \code{tc qdisc add dev lo root netem delay 200ms 40ms
+distribution normal}).
+%
+We vary
+    (i)   the network latency (\code{5--500ms} between each peer),
+    (ii)  the rate of events (\code{5--200 evt/sec} in the whole network), and
+    (iii) the delay multiplier (\code{1--5x} considering the latency and the
+          average hops between peers).
+Regarding item (c), a \code{50ms} latency with a \code{2x} multiplier results
+in \code{500ms} event delays, i.e., each event is triggered with this delay to
+compensate the given latency and fixed average of 5 hops.
+%
+These variations result in $108$ combinations.
+We executed each combination $3$ times for $5$ minutes each.
+Therefore, the experiments take $27$ hours to complete.
 
-Figure~\ref{TODO} results...
-- colors indicate feasibility
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\linewidth]{baks}
+  \caption{
+    \label{fig.baks}
+The \code{5x}, \code{2x}, and \code{1x} delay regions each contains $36$
+measures for multiple configurations of event rate (\code{5--200evt/min} and
+network latency (\code{5--500ms}).
+%
+The color thresholds (\emph{white}, \emph{yellow}, \emph{red}, \emph{black})
+are arbitrary but help to distinguish between regions of interest.
+%
+The experiments uses $1$ process for each peer in a single Linux machine
+(\emph{i7/16GB}).
+\end{figure*}
 
-We now detail how we instrument the middleware implementation to measure the
-properties above:
+We now detail the results and how we instrument the middleware implementation
+to measure the properties above:
 %
 \begin{enumerate}
 %
@@ -833,31 +863,39 @@ properties above:
 Every time a peer is ahead of time and needs to travel back, we output its id
 and how much ticks it needs to travel back.
 At the end, we measure the percentage of the sum of all time travel ticks over
-the total simulation ticks (\code{TODO} in Figure~\ref{TODO}).
+the total simulation ticks.
 As an example, if all peers sum $1000$ time travel ticks over $100k$
 accumulated simulation ticks, then the final measure is $1\%$.
-TODO: in the figure, we consider range a-b, c-d...
+%
+Figure~\ref{fig.baks} presents the results considering all combinations of
+\code{(i)}, \code{(ii)}, and \code{(iii)} above.
+The colors indicate the feasibility of each tested scenario
+    (\emph{white=good}, \emph{yellow=moderate}, \emph{red=poor},
+    \emph{black=faulty}).
+%
+For instance, the three rectangles labelled \code{(1)} represent a scenario
+with $50ms$ network delay, generating $25evt/min$.
+Each rectangle uses a different delay multiplier, showing a good performance
+for \code{5x}, moderate for \code{2x}, and poor for \code{1x}.
+%
+The color patterns indicate clear boundaries for the scenarios that can meet
+event deadlines with the desired performance.
 %
 \item \textbf{Real-time pace of peers:}
-Every time a peer receives \code{SYNC} packets and is behind, we output its id
-and how much ticks it needs to fast forward.
-At the end, we measure the percentage of the sum of all forward ticks over the
-total simulation ticks (\code{TODO} in Figure~\ref{TODO}).
-As an example, if all peers sum $1000$ forward ticks over $100k$ accumulated
-simulation ticks, then the final measure is $1\%$.
+All peers output their current ticks continuously, allowing us to compare them
+in the shared timeline.
+Every time we see a greater tick never seen in the timeline before, we count
+smaller ticks from other peers, which constitute time violations.
+As an example, if all peers sum $1000$ of such smaller ticks over $100k$
+accumulated simulation ticks, then the final measure is $1\%$.
 %
 We also start each peer with a random delay of up to $10s$ to force a
-synchronization mismatch from the beginning.
+synchronization mismatch at the beginning.
 %
-Each peer outputs its current tick continuously, allowing us to compare them
-in the shared timeline.
-Each time we see a greater tick never seen in the timeline before, we count
-smaller ticks from other peers (considering latency), which would constitute
-time violations (\code{TODO} in Figure~\ref{TODO}).
-We expect this counter to be close to zero even considering the whole
-simulation.
-TODO: in the figure, we consider range a-b, c-d...
-TODO: in comparison to the reference peer, which is the one most advanced in time.
+Considering all scenarios, the average is negligibly under $0.2\%$, with no
+variations.
+Therefore, we do not show the resulting table (such that of
+Figure~\ref{fig.baks}), which would not provide further insights.
 %
 \item \textbf{Correctness of unstable peers:}
 We run a separate simulation in which, for every $100s$, each peer remains
@@ -872,11 +910,12 @@ TODO: in the figure, we consider range a-b, c-d...
 %
 \end{enumerate}
 
-- ate 20
-- 30: bugs
-- 40: -> <- O(n), [500|500] future, (-5s) delay links
-
-- qual a natureza do baksS alto e baksI baixo?
+This could represent a...
+As an example of a concrete scenario, an interactive class over the Internet
+could have
+    an RTT of \emph{50--200ms} (\emph{Latency}),
+    interacting every \emph{5s} (\emph{Rate}).
+%e.g., a slide advance).
 
 After $Xs$, .
 and then verify if they synchronize and remain synchronized during the whole
