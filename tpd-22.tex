@@ -34,9 +34,9 @@
 
 \IEEEtitleabstractindextext{%
 \begin{abstract}
-In collaborative networked applications, such as shared online documents,
-users can interact remotely and yet share the exact same experience as if they
-were in a single machine.
+In real-time networked applications, such as shared documents, users can
+interact remotely and yet share the exact same experience as if they were in a
+single machine.
 %
 In this work, we propose a middleware for \emph{symmetric peer-to-peer
 applications} in which decentralized instances can broadcast asynchronous
@@ -48,10 +48,14 @@ stateless, and only supports pre-allocated memory.
 %
 The middleware is responsible for synchronizing the events in a global shared
 timeline across the network.
-Also, ased on memory snapshots and deterministic simulation, a ``time machine''
+Also, based on memory snapshots and deterministic simulation, a ``time machine''
 can rollback conflicting peers to resynchronize their state.
 %
-TODO: application, results
+We show that the middleware can handle applications with over 20 peers in a
+heterogeneous topology under high churn.
+For instance, in a simulation scenario of 25 events per minute with a network
+latency of $50ms$, the peers need to roll back and resynchronize only $3\%$ of
+the time.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -65,8 +69,8 @@ collaboration, determinism, peer-to-peer, time machine
 \section{Introduction}
 \label{sec.introduction}
 
-\IEEEPARstart{C}{ollaborative} networked applications allow multiple users to
-interact remotely and yet share the same experience in real time.
+\IEEEPARstart{R}{eal-time} networked applications allow multiple users to
+interact remotely and yet share the same experience.
 Examples of these \emph{symmetric distributed applications}~\cite{gals} are
 shared documents, watch parties, and multi-player games.
 %
@@ -84,7 +88,7 @@ Developers must also restrict themselves to deterministic and stateless calls
 only, such that execution can be equally reproduced in all nodes according to
 the shared timeline.
 However, current solutions depend on a central server to interconnect network
-nodes and determine the shared timeline.
+nodes and determine a shared timeline.
 
 In this work, we propose \emph{symmetric peer-to-peer applications}, which
 do not rely on central servers for coordination.
@@ -95,13 +99,28 @@ to compensate the network latency.
 To deal with events received out of order or too late, a distributed time
 machine can rollback peers to a previous state and reapply events in order and
 in time.
-Our main contribution is the design of a middleware that runs on each peer to
-ensure that all peers
+Our main contribution is the design of a middleware to ensure that all peers
     (a) meet event deadlines,
     (b) advance in sync in real time, and
     (c) can leave and join the network and remain symmetric.
 
-TODO: application, results
+We perform simulations with over 20 peers in a 5-hop mixed topology with cycles
+and straight lines.
+We vary the network latency and peer churn, as well as the frequency and
+deadlines of events.
+%
+We then measure (a) the recurrence of time travels, (b) the real-time pace of
+peers, and (c) the recoverability from churns, such that they validate our
+goals above, respectively.
+%
+As results, we show that the last two goals are met even under extreme
+conditions: peers exhibit a time mismatch of under $0.2\%$ and take less than
+$1.5s$ to recover from churns.
+%
+For the first goal, we identify the scenarios in which the middleware can meet
+event deadlines with the desired performance.
+As an example, in a scenario of 25 events per minute with a network latency of
+$50ms$, the peers need to roll back only $3\%$ of the time.
 
 In Section~\ref{sec.related}, we revisit existing solutions for symmetric
 distributed applications.
@@ -155,18 +174,18 @@ We focus on
     (a) how the network is organized,
     (b) how global time is determined, and
     (c) how events are propagated and applied.
-Figure~\ref{fig.table} compares selected works regarding these aspects.
+Figure~\ref{fig.table} compares three selected works regarding these aspects.
 
 Croquet%
 \footnote{Croquet.io: https://croquet.io/}~\cite{croquet} guarantees
-bit-identical real-time behavior for every user in a collaborative
-distributed environment.
+bit-identical real-time behavior for users in collaborative distributed
+environments.
 %
 As detailed in Figure~\ref{fig.algos}, a centralized \emph{reflector} issues
 periodic ticks, such that all nodes in the network advance together according
 to a synchronized global shared clock.
-If a user generates an event, it is delayed and sent back to the reflector,
-which broadcasts the event in the next tick, which all nodes apply in sync.
+If a user generates an event, it is sent back to the reflector, which
+broadcasts the event in the next tick, which all nodes apply in sync.
 %
 Croquet takes periodic snapshots of the whole application state in order to
 support late joins to a running session.
@@ -174,8 +193,8 @@ The new node just needs to restore the latest snapshot and simulate the
 remaining events to reach the current running state.
 %
 As indicated in Figure~\ref{fig.table}, Croquet relies on a centralized
-network, in which nodes advance in sync, and in which event outcomes depend
-on the central server to be online.
+network (a), in which nodes advance in sync (b), and in which event outcomes
+depend on the central server to be online (c).
 
 GALS~\cite{gals} shares the same goals with Croquet, but with some tradeoffs,
 mostly favoring clients with slow connections.
@@ -186,25 +205,25 @@ delayed dynamically according to the slowest client.
 %
 On the one hand, ticks do not generate any traffic and clients have smooth
 frame transitions, even those with poor connections.
-On the other hand, events are slower and clients may experience occasional
-freezes.
-The syncing protocol also requires bookkeeping to deal with clock drifts and
-client disconnections~\cite{gals}.
+On the other hand, events take longer to apply and clients may experience
+occasional freezes.
+The syncing protocol also requires extra bookkeeping to deal with clock drifts
+and client disconnections~\cite{gals}.
 %
 As indicated in Figure~\ref{fig.table}, GALS also relies on a centralized
-network, but in which nodes advance time independently, and in which event
-outcomes still depend on the central server to be online.
+network (a), but in which nodes advance time independently (b), and in which
+event outcomes still depend on the central server to be online (c).
 
 In both solutions, the network advances together as a whole in real time, with
 a total order among events, which is determined by a central server that must
 be permanently online.
-All clients compute the events in sequence, respecting their timestamps, and
-using only deterministic and stateless calls.
+All clients compute events in sequence, respecting timestamps, and using only
+deterministic and stateless calls.
 This way, it is guaranteed that all clients reach the same state, and
 observe bit-identical steps.
 
 An antagonistic approach to deterministic reactions to events is to model the
-application with conflict-free replicated data types (CRDTs)~\cite{crdts}.
+application with conflict-free replicated data types~\cite{crdts}.
 CRDTs are designed in such a way that all operations are commutative, so that
 the order in which they are applied does not affect the final outcome.
 %
@@ -224,17 +243,16 @@ software~\cite{local}, since they can work offline in the same way as online.
 On the other hand, they provide very restrictive APIs (the CRDTs themselves),
 and do not support real-time consensus among peers.
 %
-As indicated in Figure~\ref{fig.table}, CRDTs work on decentralized networks,
-in which peers advance independently, and in which operations can be applied
-immediately, even while offline.
+As indicated in Figure~\ref{fig.table}, CRDTs work on decentralized networks
+(a), in which peers advance independently (b), and in which operations can be
+applied immediately, even while offline (c).
 %
 Automerge along with its accompanying Hypermerge peer-to-peer infrastructure
-is an example of an implementation of decentralized
-CRDTs~\cite{p2p.automerge,p2p.pushpin}.
+is an example of decentralized CRDTs~\cite{p2p.automerge,p2p.pushpin}.
 
 In this work, as indicated in Figure~\ref{fig.table}, our goal is to support
-peer-to-peer real-time symmetric execution, while still tolerating offline and
-out-of-order event generation.
+peer-to-peer real-time symmetric execution (a), while still tolerating
+out-of-order (b) and offline (c) event generation.
 %
 As detailed in Figure~\ref{fig.algos}, peers have independent timelines and
 can communicate events directly to each other.
@@ -242,10 +260,12 @@ Events are delayed to be able to reach other peers in time.
 In the case a deadline is missed, the peer rolls back in time and then fast
 forwards execution until it catches real-time behavior again.
 %
-Like Croquet and GALS, peers compute events in sequence using only
-deterministic and stateless calls.
+Like Croquet and GALS, peers compute events in sequence using deterministic and
+stateless calls only.
 
-Regarding decentralized time machines, Fusion%
+We now discuss related work on time machines.
+%
+Regarding decentralized machines, Fusion%
 \footnote{Fusion: \url{https://doc.photonengine.com/en-us/fusion}}
 is a state synchronization networking library for the Unity game engine.
 It provides networked tick-based simulation in two modes: client-server
@@ -256,9 +276,9 @@ However, the shared mode is less powerful and only supports eventual
 consistency among clients.
 We presume that continuous memory snapshots would be too costly without a
 central server.
-
-Regarding single-user time machines, the video game Braid%
-\footnote{\url{Braid: http://braid-game.com/}}
+%
+Regarding single-user local machines, the video game Braid%
+\footnote{Braid: \url{http://braid-game.com/}}
 is designed on the assumption that players have unrestricted rollbacks as part
 of the game mechanics.
 Like Fusion, the implementation is based on continuous memory snapshots,
@@ -269,17 +289,14 @@ event-driven JavaScript:
     \code{init()} to return an initial state;
     \code{handle(evt,mem)} to process events and modify state; and
     \code{render(mem)} to output the current state.
-As we describe next, we use a similar approach by separating mutation from
-rendering~\cite{tml.alive}.
+As we describe next, we use a similar approach by separating state modification
+from rendering~\cite{tml.alive}.
 
 \section{The Middleware \& Programming API}
 \label{sec.tml}
 
-In this section, we describe the architecture of our middleware and also the
-API in which developers have to conform with.
-%
 The middleware is written in C and relies on the library \emph{SDL}%
-\footnote{SDL: \url{www.libsdl.org}}
+\footnote{SDL: \url{http://www.libsdl.org}}
 to deal with the network, timers, and input events, such as mouse clicks and
 key presses.
 The full source code%
@@ -303,8 +320,8 @@ is under 500 lines of code.
 We guide our discussion through the didactic example of Figure~\ref{fig.move},
 in which multiple users use the arrow keys to control the direction of a
 moving rectangle.
-The six instances are connected in a peer-to-peer network, such that some
-peers can only communicate indirectly.
+The six instances are connected in a peer-to-peer network, such that most
+peers can only communicate indirectly to each other.
 %
 The application is symmetric in the sense that if any user presses a key, a
 corresponding event is broadcast and applied in all peers simultaneously, as
@@ -320,7 +337,7 @@ the same position.
     Applications generate asynchronous events and communicate through an API
     with the middleware.
     The middleware orchestrates the peers, synchronizing their ticks locally
-    and broadcasting events with a delay.
+    and broadcasting events with a $\Delta$ delay.
     \label{fig.middleware}
   }
 \end{figure}
@@ -328,10 +345,10 @@ the same position.
 In Figure~\ref{fig.middleware}, a peer is depicted as an application that uses
 an API to communicate with the middleware.
 The application itself is not aware of the network and has no direct access to
-the other peers, which communicate transparently through the middleware.
+other peers, which communicate transparently through the middleware.
 The application generates asynchronous events that go through the middleware,
-which synchronizes them with a timestamp scheduled to the future, such that all
-peers can satisfy.
+which synchronizes them with a timestamp with a $\Delta$ delay scheduled to the
+future, such that all peers can satisfy.
 The middleware controls the execution of the application by issuing ticks and
 synchronized events.
 
@@ -345,11 +362,11 @@ As described in the Introduction, the middleware ensures that all peers
 \begin{enumerate}
 \item \textbf{Event Deadlines:}
 Due to the inherent latency of networks, peers generate events with a
-deliberate delay so that they can reach other peers in time to be applied in
+deliberate $\Delta$ so that they can reach other peers in time to be applied in
 sync.
 %We first assume a predetermined delay for the sake of simplicity.
-Nevertheless, a peer that is locally ahead of time may receive an event that
-should have been applied in the past, even considering the delay.
+Nevertheless, a peer ahead of time may receive an event that should have been
+applied in the past, even considering the delay.
 In this case, the middleware automatically rolls back the peer, applies the
 event at the correct time, and then fast forwards the peer, re-applying all
 remaining events up to the real time.
@@ -379,9 +396,11 @@ middleware can handle arrival and departure of peers seamlessly.
 Note that high churn may lead to intermittent network partitions.
 Given our unstructured approach, nothing needs to be done when a peer leaves
 the network.
-However, when a peer joins the network, the middleware needs to ensure that the
-peer receives all events that ever happened in order, which is trivial since
-they all hold an absolute timestamp in the shared timeline.
+However, when a peer joins the network, the middleware needs to ensure that it
+receives from other peer all events that ever happened, in order.
+This is trivial since all peers already need to hold the full event history (as
+described in item (a)), including their absolute timestamps in the shared
+timeline.
 \end{enumerate}
 
 \subsection{The Programming API}
@@ -437,24 +456,24 @@ struct {
 \subsubsection{Application Events}
 \label{sec.tml.api.events}
 
-The application generates events that need to be broadcast to the network so
-that all peers behave the same.
-Note that the application events may (or may not) differ from low-level local
+When an application generates events, they need to be broadcast to the network
+so that all peers behave the same.
+Note that application events may (or may not) differ from low-level local
 system events.
 %which may or may not be mapped 1-to-1 in the callback \code{cb\_evt}.
 %
 The middleware predefines two events for all applications:
     \code{P2P\_EVT\_START} represents the beginning of the simulation, and
     \code{P2P\_EVT\_TICK} is generated every frame.
-The application-specific events must be declared by the programmer in an
+The other application-specific events must be declared by the programmer in an
 enumeration.
-In our application, we define a new event \code{P2P\_EVT\_KEY} to represent key
+In our example, we define a new event \code{P2P\_EVT\_KEY} to represent key
 presses:
 
 {\footnotesize
 \begin{verbatim}
 enum {
-    P2P_EVT_KEY = P2P_EVT_NEXT
+    P2P_EVT_KEY = P2P_EVT_NEXT // next to predefined
 };
 \end{verbatim}
 }
@@ -464,7 +483,7 @@ enum {
 
 The middleware calls \code{cb\_ini} twice: at the beginning and at the end of
 the loop.
-The callback initializes (and finalizes) the network topology, as well as
+The callback should initialize (and finalize) the network topology, as well as
 static immutable globals that can live outside the simulation memory, such as
 the window and image textures in our example:
 
@@ -489,9 +508,9 @@ void cb_ini (int ini) {
 \subsubsection{Simulation Callback}
 \label{sec.tml.api.cb_sim}
 
-The middleware calls \code{cb\_sim} every frame, which affects the simulation
-state \code{G} deterministically.
-The occurring event is passed as an argument to the callback, which must never
+The middleware calls \code{cb\_sim} every frame or event occurrence, which
+should affect the simulation state \code{G} deterministically.
+An occurring event may be passed as argument to the callback, which must never
 perform any side effects, such as stateful calls or rendering frames.
 In our example, we modify the state of the rectangle as follows:
     (a) reset its position and speed on \code{START},
@@ -566,8 +585,9 @@ Not all local low-level events need to broadcast application events in the
 network.
 The callback is allowed to perform side effects, such as modifying the network
 topology, or exhibiting instant feedback on the screen.
-In our example, we only generate application events for the 5 key events, and
-we also exhibit the pressed key in real time as a visual feedback:
+In our example, we only generate application events for the 5 key events of
+interest, but we also exhibit the pressed key in real time as a visual
+feedback:
 
 {\footnotesize
 \begin{verbatim}
@@ -659,13 +679,13 @@ as follows:
 06      if (<next-network-packet>) {
 07        // fast forward if I'm late
 08        if (<packet-sync-future>) {
-09          p2p_travel(<now>, <packet-sync-time>, <speed>);
+09          p2p_travel(<now>, <pak-sync-time>, <vel>);
 10        }
 11
 12        // travel back & forth if I'm early
 13        if (<packet-evt-past>) {
-14          p2p_travel(<now>, <packet-evt-time>, <speed>);
-15          p2p_travel(<packet-evt-time>, <now>, <speed>);
+14          p2p_travel(<now>, <pak-evt-time>, <vel>);
+15          p2p_travel(<pak-evt-time>, <now>, <vel>);
 16        }
 17
 18        // real time if I'm on time
@@ -780,8 +800,8 @@ In this section, we evaluate if (and to what extent) our design meets its goals
 to ensure that all peers (a) meet event deadlines, (b) advance in sync in real
 time, and (c) can leave and join the network and remain symmetric.
 %
-We simulate an application varying the network latency and peer churn, as well
-as the frequency and deadlines of events.
+We perform simulation varying the network latency and peer churn, as well as
+the frequency and deadlines of events.
 %
 We then measure (a) the recurrence of time travels, (b) the real-time pace of
 peers, and (c) the recoverability from churns, such that they validate our
@@ -812,7 +832,17 @@ We then assert that they all catch up in real time within a short period.
   }
 \end{figure*}
 
-We simulate the application with $21$ peers using the mixed topology of
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=2in]{mult}
+  \caption{
+    \label{fig.mult}
+Event delays in $ms$ considering the network latency, delay multiplier, and the
+average of 5 hops between peers from Figure~\ref{fig.topo}.
+    }
+\end{figure}
+
+We perform simulations with 21 peers using the mixed topology of
 Figure~\ref{fig.topo}, with peers organized in straight lines and cycles.
 The topology has an average of 5 hops between peers (e.g., \code{4--16} are 7
 hops away).
@@ -822,21 +852,26 @@ peers, allowing us to merge their logs into a single file with a comparable
 shared timeline.
 %
 We use \emph{NetEm}~\cite{netem} to simulate the network latency with a normal
-distribution (e.g., \code{tc qdisc add dev lo root netem delay 200ms 40ms
-distribution normal}).
+distribution.
+% (e.g., \code{tc qdisc add dev lo root netem delay 200ms 40ms distribution normal}).
 %
 We vary
     (i)   the network latency (\code{5--500ms} between each peer),
     (ii)  the rate of events (\code{5--200 evt/sec} in the whole network), and
     (iii) the delay multiplier (\code{1--5x} considering the latency and the
           average hops between peers).
-Regarding item (c), a \code{50ms} latency with a \code{2x} multiplier results
-in \code{500ms} event delays, i.e., each event is triggered with this delay to
+%
+Figure~\ref{fig.mult} shows the event delays considering the network latency
+and chosen multiplier.
+For instance, a \code{50ms} latency with a \code{2x} multiplier results in
+\code{500ms} event delays, i.e., each event is triggered with this delay to
 compensate the given latency and fixed average of 5 hops.
 %
 These variations result in $108$ combinations.
 We executed each combination $3$ times for $5$ minutes each.
-Therefore, the experiments take $27$ hours to complete.
+We also make some modifications to evaluate peer churn, which requires to
+re-execute the simulation.
+The experiments take around $40$ hours to complete.
 
 \begin{figure*}[t]
   \centering
@@ -852,6 +887,7 @@ are arbitrary but help to distinguish between regions of interest.
 %
 The experiments uses $1$ process for each peer in a single Linux machine
 (\emph{i7/16GB}).
+    }
 \end{figure*}
 
 We now detail the results and how we instrument the middleware implementation
@@ -868,18 +904,15 @@ As an example, if all peers sum $1000$ time travel ticks over $100k$
 accumulated simulation ticks, then the final measure is $1\%$.
 %
 Figure~\ref{fig.baks} presents the results considering all combinations of
-\code{(i)}, \code{(ii)}, and \code{(iii)} above.
+parameters (i), (ii), and (iii) above.
 The colors indicate the feasibility of each tested scenario
     (\emph{white=good}, \emph{yellow=moderate}, \emph{red=poor},
     \emph{black=faulty}).
 %
-For instance, the three rectangles labelled \code{(1)} represent a scenario
-with $50ms$ network delay, generating $25evt/min$.
+For instance, the three framed rectangles ($0.1$, $3.1$, and $7.2$) represent
+the scenarios with $50ms$ network delay, generating $25evt/min$.
 Each rectangle uses a different delay multiplier, showing a good performance
-for \code{5x}, moderate for \code{2x}, and poor for \code{1x}.
-%
-The color patterns indicate clear boundaries for the scenarios that can meet
-event deadlines with the desired performance.
+for $5x$, moderate for $2x$, and poor for $1x$.
 %
 \item \textbf{Real-time pace of peers:}
 All peers output their current ticks continuously, allowing us to compare them
@@ -893,67 +926,67 @@ We also start each peer with a random delay of up to $10s$ to force a
 synchronization mismatch at the beginning.
 %
 Considering all scenarios, the average is negligibly under $0.2\%$, with no
-variations.
-Therefore, we do not show the resulting table (such that of
-Figure~\ref{fig.baks}), which would not provide further insights.
+significant variance.
+Therefore, we omit the resulting table akin to Figure~\ref{fig.baks}), which
+would not provide further insights.
 %
 \item \textbf{Correctness of unstable peers:}
-We run a separate simulation in which, for every $100s$, each peer remains
-$40s$ online and $20s$ offline, including peers \code{9--11} in the middle of
-the network.
-This creates partitions in which sides advance in time and generate events out
-of sync, which need to be merged and resynchronized constantly.
-We measure
-    - state (even for stable peers)
-    - qto tempo leva para sync
-TODO: in the figure, we consider range a-b, c-d...
+We tweak our simulation to make each peer remain $40s$ online and $20s$
+offline in the average, including peers \code{9--11} in the middle of the
+network.
+This creates partitions in the network, which generate events out of sync that
+require constant resynchronization between peers.
+%
+Then, to evaluate the network correctness under such high churn, we count how
+much time the recovering peers take to catch up in real time:
+When a peer becomes online, we take the current maximum tick considering all
+reachable peers, and then count the time the recovering peer takes to catch up.
+We also assert that they all reach the same final state eventually.
+%
+Considering all scenarios, the average is $1.3$ seconds of recovering time,
+with no significant variance.
+Therefore, we also omit the resulting table akin to Figure~\ref{fig.baks}).
 %
 \end{enumerate}
 
-This could represent a...
-As an example of a concrete scenario, an interactive class over the Internet
-could have
-    an RTT of \emph{50--200ms} (\emph{Latency}),
-    interacting every \emph{5s} (\emph{Rate}).
-%e.g., a slide advance).
+\begin{comment}
+$ vi test.c: // #define TEST_OFFLINE
+$ sudo ./test-ana.sh 2>&1 | tee all.log
+$ ./test-sheet.sh > sheet.log
+$ ./test-sheet-2.sh > sheet-2.log
+$ lua5.3 test-sheet-2.lua sheet-2.log > /tmp/x
+$ gedit /tmp/x
 
-After $Xs$, .
-and then verify if they synchronize and remain synchronized during the whole
-simulation.
-We teak the middleware to output its current tick every $100ms$.
+$ vi test.c: #define TEST_OFFLINE
+$ sudo ./test2-ana.sh 2>&1 | tee all2.log
+$ lua5.3 test2-sheet.lua
+\end{comment}
 
-More concretely, we measure the percentage o ticks diverging from the reference
-peer (e.g., $1\%$, if .
+Our results show that goals (b) and (c) are met in all scenarios consistently,
+and we consider them nearly optimal:
+Regardless of the network latency, event rate, and delay multiplier,
+    the variation in the pace of peers is under $0.2\%$ (goal b), and
+    recovering peers take $1.3$ seconds to catch up in time (goal c).
+Regarding goal (c), note that the middleware is configured to make small steps
+towards smooth time transitions, which take $1$ second to complete.
+Therefore, the average of $1.3$ seconds shows that peers need no more than 2
+time travels while recovering.
 
-For instance, if the reference peer signals $T$ and then a peer signals $T-dt$,
-than we.
-That would be the case when a source peer generates an event with a small
-deadline in comparison to the latency to the farthest destination peer.
+Considering goal (a), we need to take a closer look at Figure~\ref{fig.baks}.
+The color patterns indicate clear boundaries for the scenarios that can meet
+event deadlines with the desired performance.
+%
+For instance, high event delays (column $5x$) make all scenarios viable,
+even with high latency and event frequency.
+As an application example, chats are not affected by high event delays.
+Nevertheless, the higher are the event delays, the less applications suit the
+middleware.
+%
+For the lowest possible delay (column $1x$), we see that the middleware can
+either handle low latency with high event frequency (e.g., $5ms$ with
+$100evt/min$) or high lantency with low event frequency (e.g., $100ms$ with
+$5evt/min$).
 
-We run the simulation for 5 minutes and, since we start the measures after 1 minute
-
-- check if all ticks of all peers are in the same state
-
-- VARIABLES
-- number of nodes
-- topology
-    - distance b/w nodes
-    - number of edges
-- latency b/w nodes
-- freq of events
-- ~FPS~
-- future delta
-
-- RESULTS
-- time travels
-- ~real time~
-- ~enter leave~ (catches up?)
-
--- use of space for snapshots
--    - limit to go back?
--    - super nodes? (when connecting, pass tick, may close if tick<last)
-
--- start with random deltas
 \section{TODO}
 
 TODO: simpler than vector clocks, absolute times are correct
