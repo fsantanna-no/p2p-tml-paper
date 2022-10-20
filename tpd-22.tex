@@ -617,8 +617,8 @@ all peers
 \label{sec.tml.middleware.events}
 
 As illustrated in Figure~\ref{fig.middleware}, events are broadcast between
-peers with a timestamp scheduled to the future such that all peers are able to
-apply them in sync.
+peers with a timestamp scheduled to the future with a $\Delta$ such that all
+peers are able to apply them in sync.
 %
 To prevent broadcast cycles, each peer keeps a vector with the highest
 timestamp it received from each other peer, such that lower numbers can be
@@ -630,20 +630,19 @@ vector position and triggers a broadcast to neighbours.
 %
 As mentioned in Section~\ref{sec.tml.api}, we assume that peers assign
 themselves unique identifiers in a contiguous range, such that they fit in a
-contiguous vector of timestamps.
+simple vector of timestamps.
 Therefore, this is not a severe limitation, and a separate mechanism could be
-used for assignments, with few modifications to core of the middleware.
+used for assignments, with few modifications to the core of the middleware.
 
 When receiving an unseen event, the middleware also enqueues it in timestamp
 order and calls the application callback \code{cb\_sim} at the appropriate
 time.
-The peers must keep the full queue in memory for two reasons:
-    (a) receiving a late event may reorder the queue and require a time
-        travel, and
+Peers must keep the full event queue in memory for two reasons:
+    (a) receiving a late event may reorder it and require a time travel, and
     (b) peers that join the network need to receive all events.
 %
 Therefore, the middleware keeps a queue of ``packets'', which includes the
-event and other metadata:
+event and additional metadata:
 
 {\footnotesize
 \begin{verbatim}
@@ -654,8 +653,8 @@ typedef struct {
 } p2p_pak;
 
 struct {
-    int i;              // next event to apply
-    int n;              // number of events
+    int i;  // next event to apply in real time
+    int n;  // number of events in the queue
     p2p_pak buf[MAX];   // queue of packets
 } PAKS;
 \end{verbatim}
@@ -718,8 +717,8 @@ as follows:
 
 The function receives the application callbacks as arguments \lin{1}
 (Section~\ref{sec.tml.api}).
-We first (and last) call \code{cb\_ini} \lin{2,41} to initialize (and finalize)
-the application.
+We first (and last) call \code{cb\_ini} to initialize (and finalize) the
+application \lin{2,41}.
 Then, we call \code{cb\_sim} \lin{3}, passing the event \code{START} to start
 the application in real time
 (Sections~\ref{sec.tml.api.events}~and~\ref{sec.tml.api.cb_sim}).
@@ -736,8 +735,8 @@ Otherwise, we just apply the event in real time \lin{18--22}
 We detail the function \code{p2p\_travel} in
 Section~\ref{sec.tml.middleware.travel}.
 %
-Regarding local inputs, we call \code{cb\_evt} \lin{26--30} to signal if the
-event should be broadcast, also transforming it to an application event
+Regarding local inputs, we call \code{cb\_evt} to signal if the event should be
+broadcast \lin{26--30}, also transforming it to an application event
 (Section~\ref{sec.tml.api.cb_evt}).
 %
 Regarding time ticks, we call \code{cb\_sim} and \code{cb\_ren} in real time
@@ -768,7 +767,7 @@ allows to move the application back and forth in time:
 }
 
 The function \code{p2p\_travel} time travels the application, starting at tick
-\code{from}, tick by tick, until it reaches tick \code{to} \lin{2--10}.
+\code{from}, tick by tick \lin{2--10}, until it reaches tick \code{to}.
 The loop can travel in both directions, i.e., \code{from} may be higher than
 \code{to}.
 At each step, we need to find the tick \code{bef} with the closest past
@@ -780,14 +779,12 @@ experience smooth time transitions.
 \subsubsection{Summary}
 \label{sec.tml.middleware.summary}
 
-This section provided an overview of the middleware implementation to answer,
-in concrete terms, how it ensures the desired properties enumerated in the
-Introduction and at the beginning of Section~\ref{sec.tml.middleware}:
-    (a) peers meet event deadlines either in real time \lin{18--21} or
-        travelling back and forth in time
-        (\linx{12--16} / \ref{sec.tml.middleware.loop});
+This section provided an overview of the middleware implementation to answer
+how it ensures the desired properties in concrete terms as follows:
+    (a) peers meet event deadlines either travelling back and forth or in real
+        time (\linx{12--16} or \lin{18--22} / \ref{sec.tml.middleware.loop});
     (b) peers synchronize their clocks with periodic \code{SYNC} packets that
-        fast forwards late peers
+        fast forward late peers
         (\linx{7--10} / \ref{sec.tml.middleware.loop}); and
     (c) peers can join the network at any time and still catch up in time by
         receiving the full event history
@@ -809,16 +806,17 @@ goals above, respectively.
 
 Regarding (a), if a peer experiences a time travel, it means that it received
 an event after its deadline.
-We then count all time travel occurrences during the simulation.
+We then count all time travel occurrences in the evaluation.
 %
 Regarding (b), we use an absolute simulation clock to track, in real time, the
 execution pace of each peer.
 % in comparison to the reference peer, which is the one most advanced in time.
-We then count the mismatches between the clocks.
+We then count the mismatches between the clocks in the evaluation.
 %
 Regarding (c), we make peers leave and join the network periodically, possibly
 creating partitions.
-We then assert that they all catch up in real time within a short period.
+We then assert that they all catch up in real time within a short period in the
+evaluation.
 
 \begin{figure*}[t]
   \centering
@@ -844,7 +842,7 @@ average of 5 hops between peers from Figure~\ref{fig.topo}.
 
 We perform simulations with 21 peers using the mixed topology of
 Figure~\ref{fig.topo}, with peers organized in straight lines and cycles.
-The topology has an average of 5 hops between peers (e.g., \code{4--16} are 7
+The topology has an average of 5 hops between peers (e.g., \code{4-16} are 7
 hops away).
 %
 In order to have an absolute clock, we use a single machine to simulate all
@@ -856,9 +854,9 @@ distribution.
 % (e.g., \code{tc qdisc add dev lo root netem delay 200ms 40ms distribution normal}).
 %
 We vary
-    (i)   the network latency (\code{5--500ms} between each peer),
-    (ii)  the rate of events (\code{5--200 evt/sec} in the whole network), and
-    (iii) the delay multiplier (\code{1--5x} considering the latency and the
+    (i)   the network latency (\code{5-500ms} between each peer),
+    (ii)  the rate of events (\code{5-200 evt/sec} in the whole network), and
+    (iii) the delay multiplier (\code{1-5x} considering the latency and the
           average hops between peers).
 %
 Figure~\ref{fig.mult} shows the event delays considering the network latency
@@ -879,8 +877,8 @@ The experiments take around $40$ hours to complete.
   \caption{
     \label{fig.baks}
 The \code{5x}, \code{2x}, and \code{1x} delay regions each contains $36$
-measures for multiple configurations of event rate (\code{5--200evt/min} and
-network latency (\code{5--500ms}).
+measures for multiple configurations of event rate (\code{5-200evt/min} and
+network latency (\code{5-500ms}).
 %
 The color thresholds (\emph{white}, \emph{yellow}, \emph{red}, \emph{black})
 are arbitrary but help to distinguish between regions of interest.
@@ -932,7 +930,7 @@ would not provide further insights.
 %
 \item \textbf{Correctness of unstable peers:}
 We tweak our simulation to make each peer remain $40s$ online and $20s$
-offline in the average, including peers \code{9--11} in the middle of the
+offline in the average, including peers \code{9-11} in the middle of the
 network.
 This creates partitions in the network, which generate events out of sync that
 require constant resynchronization between peers.
