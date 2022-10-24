@@ -790,32 +790,37 @@ how it ensures the desired properties in concrete terms as follows:
         receiving the full event history
         (Section~\ref{sec.tml.middleware.events}).
 
+%\newpage
 \section{Evaluation}
 \label{sec.eval}
 
-In this section, we evaluate if (and to what extent) our design meets its goals
-to ensure that all peers (a) meet event deadlines, (b) advance in sync in real
-time, and (c) can leave and join the network and remain symmetric.
+In this section, we evaluate if our design meets the goals to ensure that all
+peers
+    (a) meet event deadlines,
+    (b) advance in sync in real time, and
+    (c) can leave and join the network and remain symmetric.
 %
-We perform simulation varying the network latency and peer churn, as well as
+We perform simulations varying the network latency and peer churn, as well as
 the frequency and deadlines of events.
 %
-We then measure (a) the recurrence of time travels, (b) the real-time pace of
-peers, and (c) the recoverability from churns, such that they validate our
-goals above, respectively.
+We then measure
+    (a) the recurrence of time travels,
+    (b) the real-time pace of peers, and
+    (c) the recoverability from churns,
+such that they validate our goals above, respectively.
 
 Regarding (a), if a peer experiences a time travel, it means that it received
 an event after its deadline.
-We then count all time travel occurrences in the evaluation.
+We then count all time travel occurrences in our evaluation.
 %
 Regarding (b), we use an absolute simulation clock to track, in real time, the
 execution pace of each peer.
 % in comparison to the reference peer, which is the one most advanced in time.
-We then count the mismatches between the clocks in the evaluation.
+We then count the mismatches between the clocks in our evaluation.
 %
 Regarding (c), we make peers leave and join the network periodically, possibly
 creating partitions.
-We then assert that they all catch up in real time within a short period in the
+We then assert that they all catch up in real time within a short period in our
 evaluation.
 
 \begin{figure*}[t]
@@ -845,6 +850,10 @@ Figure~\ref{fig.topo}, with peers organized in straight lines and cycles.
 The topology has an average of 5 hops between peers (e.g., \code{4-16} are 7
 hops away).
 %
+We run the application main loop at $50 FPS$ ($20ms$ per frame) and calculate
+the middleware overhead at each iteration, which is $9us$ in the average,
+corresponding to less than $1/2000$ of the CPU time.
+%
 In order to have an absolute clock, we use a single machine to simulate all
 peers, allowing us to merge their logs into a single file with a comparable
 shared timeline.
@@ -854,16 +863,15 @@ distribution.
 % (e.g., \code{tc qdisc add dev lo root netem delay 200ms 40ms distribution normal}).
 %
 We vary
-    (i)   the network latency (\code{5-500ms} between each peer),
-    (ii)  the rate of events (\code{5-200 evt/sec} in the whole network), and
-    (iii) the delay multiplier (\code{1-5x} considering the latency and the
-          average hops between peers).
+    (i)   the network latency ($5-500ms$ between each peer),
+    (ii)  the rate of events ($5-200~evt/sec$), and
+    (iii) the delay multiplier ($1-5x$).
 %
 Figure~\ref{fig.mult} shows the event delays considering the network latency
 and chosen multiplier.
-For instance, a \code{50ms} latency with a \code{2x} multiplier results in
-\code{500ms} event delays, i.e., each event is triggered with this delay to
-compensate the given latency and fixed average of 5 hops.
+For instance, a $50ms$ latency with a $2x$ multiplier results in $500ms$ event
+delays, i.e., each event is triggered with this delay to compensate the given
+latency and fixed average of 5 hops.
 %
 These variations result in $108$ combinations.
 We executed each combination $3$ times for $5$ minutes each.
@@ -876,9 +884,8 @@ The experiments take around $40$ hours to complete.
   \includegraphics[width=\linewidth]{baks}
   \caption{
     \label{fig.baks}
-The \code{5x}, \code{2x}, and \code{1x} delay regions each contains $36$
-measures for multiple configurations of event rate (\code{5-200evt/min} and
-network latency (\code{5-500ms}).
+The $5x$, $2x$, and $x$ delay regions each contains $36$ measures for multiple
+configurations of event rate ($5-200~evt/min$ and network latency ($5-500ms$).
 %
 The color thresholds (\emph{white}, \emph{yellow}, \emph{red}, \emph{black})
 are arbitrary but help to distinguish between regions of interest.
@@ -894,7 +901,7 @@ to measure the properties above:
 \begin{enumerate}
 %
 \item \textbf{Recurrence of time travels:}
-Every time a peer is ahead of time and needs to travel back, we output its id
+Every time a peer is ahead in time and needs to travel back, we output its id
 and how much ticks it needs to travel back.
 At the end, we measure the percentage of the sum of all time travel ticks over
 the total simulation ticks.
@@ -907,8 +914,9 @@ The colors indicate the feasibility of each tested scenario
     (\emph{white=good}, \emph{yellow=moderate}, \emph{red=poor},
     \emph{black=faulty}).
 %
-For instance, the three framed rectangles ($0.1$, $3.1$, and $7.2$) represent
-the scenarios with $50ms$ network delay, generating $25evt/min$.
+For instance, the three framed rectangles ($0.1$, $3.1$, and $7.2$) in the
+figure represent the scenarios with $50ms$ network delay, generating
+$25~evt/min$.
 Each rectangle uses a different delay multiplier, showing a good performance
 for $5x$, moderate for $2x$, and poor for $1x$.
 %
@@ -936,14 +944,14 @@ This creates partitions in the network, which generate events out of sync that
 require constant resynchronization between peers.
 %
 Then, to evaluate the network correctness under such high churn, we count how
-much time the recovering peers take to catch up in real time:
+much time a recovering peer takes to catch up in real time:
 When a peer becomes online, we take the current maximum tick considering all
 reachable peers, and then count the time the recovering peer takes to catch up.
 We also assert that they all reach the same final state eventually.
 %
 Considering all scenarios, the average is $1.3$ seconds of recovering time,
 with no significant variance.
-Therefore, we also omit the resulting table akin to Figure~\ref{fig.baks}).
+Therefore, we also omit the resulting table (akin to Figure~\ref{fig.baks}).
 %
 \end{enumerate}
 
@@ -963,10 +971,10 @@ $ lua5.3 test2-sheet.lua
 Our results show that goals (b) and (c) are met in all scenarios consistently,
 and we consider them nearly optimal:
 Regardless of the network latency, event rate, and delay multiplier,
-    the variation in the pace of peers is under $0.2\%$ (goal b), and
+    the variation in the pace of peers is under $0.2\%$ (goal b), while
     recovering peers take $1.3$ seconds to catch up in time (goal c).
-Regarding goal (c), note that the middleware is configured to make small steps
-towards smooth time transitions, which take $1$ second to complete.
+Also regarding goal (c), note that the middleware makes smooth time transitions
+in small steps that take $1$ second to complete.
 Therefore, the average of $1.3$ seconds shows that peers need no more than 2
 time travels while recovering.
 
@@ -984,40 +992,12 @@ For the lowest possible delay (column $1x$), we see that the middleware can
 either handle low latency with high event frequency (e.g., $5ms$ with
 $100evt/min$) or high lantency with low event frequency (e.g., $100ms$ with
 $5evt/min$).
-
-\section{TODO}
-
-TODO: simpler than vector clocks, absolute times are correct
-
-- p2p links por fora, como um servico TCP local
-
-We make some assumptions about the network, which are assigned externally to
-the middleware:
 %
-\begin{itemize}
-\item Peers identifiers are assigned externally to the middleware.
-\item Topology is dynamic, but also assigned externally
+The color patterns in the table provide the necessary information to confront
+an application with its feasibility or desired performance.
 
-\end{itemize}
-%
-Except for the last item, we claim that the others can be solved externally,
-without affecting the middleware.
-For instance,
-- orthogonal and would not affect the other algorithms in the middleware
-
-, which we claim that could be
-solved further:
-- ids are outside
-- topology, dynamic but outside
-- fixed maximum nodes
-- fixed latency
-We claim that Use external protocols
-For instance, latency is only a constant, no problem being a variable
-
-- non-malicious nodes
-
-\section{Application}
-\label{sec.app}
+%\section{Application}
+%\label{sec.app}
 
 \section{Conclusion}
 \label{sec.conclusion}
