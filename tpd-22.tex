@@ -124,20 +124,11 @@ $50ms$, the peers need to roll back only $3\%$ of the time.
 
 In Section~\ref{sec.related}, we revisit existing solutions for symmetric
 distributed applications.
-In Section~\ref{sec.tml}, we detail our proposed middleware.
-In Section~\ref{sec.app}, ...
-In Section~\ref{sec.eval}, ...
-In Section~\ref{sec.conclusion}, ...
-
-- assumptions
-    - correct (non-malicious) nodes
-
-- local first
-- p2p
-- less restrictive (compared to CRDTs)
-- semantic events
-    - limitation b/c of rollbacks
-    - features b/c of network traffic
+In Section~\ref{sec.tml}, we detail the architecture of our middleware, its
+programming API, and how it orchestrates peers.
+%In Section~\ref{sec.app}, ...
+In Section~\ref{sec.eval}, we evaluate our design under a number of scenarios.
+In Section~\ref{sec.conclusion}, we conclude this work.
 
 \section{Related Work}
 \label{sec.related}
@@ -794,6 +785,18 @@ how it ensures the desired properties in concrete terms as follows:
 \section{Evaluation}
 \label{sec.eval}
 
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\linewidth]{topo}
+  \caption{
+    \label{fig.topo}
+    Network topology: 21 peers organized as a straight line ($0-3$), a simple
+    cycle ($3-8$), a second straight line ($8-11$), a full connected cycle
+    ($12-17$), and a third straight line ($17-20$).
+    %An optional link ($0,20$) creates a long cycle in the network.
+  }
+\end{figure*}
+
 In this section, we evaluate if our design meets the goals to ensure that all
 peers
     (a) meet event deadlines,
@@ -823,18 +826,6 @@ creating partitions.
 We then assert that they all catch up in real time within a short period in our
 evaluation.
 
-\begin{figure*}[t]
-  \centering
-  \includegraphics[width=\linewidth]{topo}
-  \caption{
-    \label{fig.topo}
-    Network topology: 21 peers organized as a straight line ($0-3$), a simple
-    cycle ($3-8$), a second straight line ($8-11$), a full connected cycle
-    ($12-17$), and a third straight line ($17-20$).
-    %An optional link ($0,20$) creates a long cycle in the network.
-  }
-\end{figure*}
-
 \begin{figure}[t]
   \centering
   \includegraphics[width=2in]{mult}
@@ -850,7 +841,7 @@ Figure~\ref{fig.topo}, with peers organized in straight lines and cycles.
 The topology has an average of 5 hops between peers (e.g., \code{4-16} are 7
 hops away).
 %
-We run the application main loop at $50 FPS$ ($20ms$ per frame) and calculate
+We run the application main loop at $50~FPS$ ($20ms$ per frame) and calculate
 the middleware overhead at each iteration, which is $9us$ in the average,
 corresponding to less than $1/2000$ of the CPU time.
 %
@@ -879,6 +870,8 @@ We also make some modifications to evaluate peer churn, which requires to
 re-execute the simulation.
 The experiments take around $40$ hours to complete.
 
+% https://docs.google.com/spreadsheets/d/1xK5_wF9MoR-SmPGWVj0sGLrHxhpPBlLjVoS8U-Y7zTQ/edit#gid=63016757
+
 \begin{figure*}[t]
   \centering
   \includegraphics[width=\linewidth]{baks}
@@ -897,10 +890,8 @@ The experiments uses $1$ process for each peer in a single Linux machine
 
 We now detail the results and how we instrument the middleware implementation
 to measure the properties above:
-%
-\begin{enumerate}
-%
-\item \textbf{Recurrence of time travels:}
+
+\textbf{(a) Recurrence of time travels:}
 Every time a peer is ahead in time and needs to travel back, we output its id
 and how much ticks it needs to travel back.
 At the end, we measure the percentage of the sum of all time travel ticks over
@@ -919,8 +910,8 @@ figure represent the scenarios with $50ms$ network delay, generating
 $25~evt/min$.
 Each rectangle uses a different delay multiplier, showing a good performance
 for $5x$, moderate for $2x$, and poor for $1x$.
-%
-\item \textbf{Real-time pace of peers:}
+
+\textbf{(b) Real-time pace of peers:}
 All peers output their current ticks continuously, allowing us to compare them
 in the shared timeline.
 Every time we see a greater tick never seen in the timeline before, we count
@@ -935,8 +926,8 @@ Considering all scenarios, the average is negligibly under $0.2\%$, with no
 significant variance.
 Therefore, we omit the resulting table akin to Figure~\ref{fig.baks}), which
 would not provide further insights.
-%
-\item \textbf{Correctness of unstable peers:}
+
+\textbf{(c) Correctness of unstable peers:}
 We tweak our simulation to make each peer remain $40s$ online and $20s$
 offline in the average, including peers \code{9-11} in the middle of the
 network.
@@ -952,8 +943,6 @@ We also assert that they all reach the same final state eventually.
 Considering all scenarios, the average is $1.3$ seconds of recovering time,
 with no significant variance.
 Therefore, we also omit the resulting table (akin to Figure~\ref{fig.baks}).
-%
-\end{enumerate}
 
 \begin{comment}
 $ vi test.c: // #define TEST_OFFLINE
@@ -973,10 +962,9 @@ and we consider them nearly optimal:
 Regardless of the network latency, event rate, and delay multiplier,
     the variation in the pace of peers is under $0.2\%$ (goal b), while
     recovering peers take $1.3$ seconds to catch up in time (goal c).
-Also regarding goal (c), note that the middleware makes smooth time transitions
-in small steps that take $1$ second to complete.
-Therefore, the average of $1.3$ seconds shows that peers need no more than 2
-time travels while recovering.
+Note that the middleware makes smooth time transitions in small steps that take
+$1$ second to complete, resulting in no more than 2 time travels to recover
+peers.
 
 Considering goal (a), we need to take a closer look at Figure~\ref{fig.baks}.
 The color patterns indicate clear boundaries for the scenarios that can meet
@@ -1001,6 +989,39 @@ an application with its feasibility or desired performance.
 
 \section{Conclusion}
 \label{sec.conclusion}
+
+We propose a middleware to program \emph{symmetric peer-to-peer applications}
+in which interacting decentralized instances conform to identical behavior.
+%
+The middleware API shares similar limitations with centralized
+alternatives~\cite{gals,croquet}, being restricted to deterministic and
+stateless calls, and only supports pre-allocated memory.
+%
+Our main contribution is a ``time machine'' based on memory snapshots and
+deterministic simulation, allowing to decentralize the network timeline such
+that conflicting peers can rollback and resynchronize their state.
+%
+We assume that peers are non-malicious and that they can assign themselves
+unique identifiers in a contiguous range.
+
+The middleware can handle applications with over 20 peers in a heterogeneous
+topology under high churn.
+%
+We show that peers can
+    (a) broadcast events and meet deadlines globally, 
+    (b) advance in sync in real time, and
+    (c) leave and join the network and remain symmetric.
+%
+In our experiments, we vary the network latency and the rate and deadline of
+events.
+We than measure the recurrence of time travels in the network as a
+representative of quality.
+%
+As a result, we present a feasibility table to indicate the application
+scenarios that the middleware can handle.
+For instance, in a simulation scenario of 25 events per minute with a network
+latency of $50ms$, the peers need to roll back and resynchronize only $3\%$ of
+the time.
 
 \bibliographystyle{IEEEtran}
 \bibliography{tpd-22}
