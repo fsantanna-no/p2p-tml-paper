@@ -1,5 +1,5 @@
 all:
-	pdflatex tpd-22
-	bibtex   tpd-22
-	pdflatex tpd-22
-	pdflatex tpd-22
+	pdflatex p2p-22
+	bibtex   p2p-22
+	pdflatex p2p-22
+	pdflatex p2p-22
