@@ -5,4 +5,4 @@ all:
 	pdflatex p2p-22
 
 clean:
-	rm -f .*.swp *.aux *.bbl *.blg *.out *.log *.dvi *.pdf
+	rm -f .*.swp *.aux *.bbl *.blg *.out *.log *.dvi
