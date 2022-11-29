@@ -173,6 +173,11 @@ We focus on
     (b) how global time is determined, and
     (c) how events are propagated and applied.
 Figure~\ref{fig.table} compares three selected works regarding these aspects.
+%
+At the end of this section, we also discuss related work on local and
+distributed time machines.
+
+\subsection{Symmetric Distributed Applications}
 
 Croquet~\cite{croquet,croquet.site} guarantees bit-identical real-time behavior
 for users in collaborative distributed environments.
@@ -260,9 +265,51 @@ forwards execution until it catches real-time behavior again.
 Like Croquet and GALS, peers compute events in sequence using deterministic and
 stateless calls only.
 
-We now discuss related work on time machines.
+Many aspects may affect the performance of symmetric distributed applications,
+such as
+    the network latency,
+    the number of nodes in the network,
+    the rate of user events,
+    and the application frame rate.
 %
-Regarding decentralized solutions, Fusion~\cite{fusion} is a state
+It is expected that centralized solutions exhibit a better performance in
+comparison to peer-to-peer applications, since nodes are only 2 hops aways from
+each other.
+%
+The performance of Croquet depends exclusively on the network latency, which
+restricts the application to a maximum FPS.
+For instance, since all frame ticks need to be transmitted over the network,
+a latency of 50ms supports at most 20 FPS.
+Also, the higher is the FPS, the higher is the network traffic and server load,
+which may also degrade performance.
+%
+GALS detaches latency from FPS, since each node has its own timeline.
+However, the protocol requires two roundtrips to the server, which degrades
+performance considerably.
+The authors claim to achieve a responsiveness of 350ms in applications with
+25 nodes at 25 FPS, where 350ms represents the time it takes for all nodes to
+apply an event since its initial occurrence.
+%
+As we discuss in Section~\ref{sec.eval}, the performance of our midlleware is
+measured in terms of rollbacks, i.e., the more the peers need to resynchronize
+and travel back in time, the lower is the performance of the application.
+In a similar scenario with 21 peers at 50 FPS, and average of 5 hops with 50ms
+latency, we show 3.1\% of rollbacks with responsiveness of 500ms, which we
+classify as moderate performance (Figure~\ref{fig.baks}, framed rectangle in
+the center).
+As expected, the peer-to-peer performance is lower in comparison to centralized
+solutions, but still viable in many scenarios, as detalied in
+Section~\ref{sec.eval}.
+%
+Regarding CRDTs, recall that they only provide eventual consistency with no
+notion of a shared timeline in which peers go through identical steps.
+Therefore, measuring the performance of event responsiveness, maximum FPS, or
+clock synchronization is meaningless, given that events can be applied locally
+and broadcasted using a best-effort policy.
+
+\subsection{Time Machines}
+
+Regarding decentralized time machines, Fusion~\cite{fusion} is a state
 synchronization networking library for the Unity game engine.
 It provides networked tick-based simulation in two modes: client-server
 (\emph{hosted mode}) and peer-to-peer (\emph{shared mode}).
@@ -273,7 +320,7 @@ consistency among clients.
 We presume that continuous memory snapshots would be too costly without a
 central server.
 %
-Regarding single-user local machines, the video game Braid%
+Regarding single-user local time machines, the video game Braid%
 \footnote{Braid: \url{http://braid-game.com/}}
 is designed on the assumption that players have unrestricted rollbacks as part
 of the game mechanics.
