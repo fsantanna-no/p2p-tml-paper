@@ -69,21 +69,6 @@ publish-subscribe, reputation system, VCS
 \section{Introduction}
 \label{sec.introduction}
 
-\begin{comment}
-Os autores mencionam que em cenário com latência de 50ms e 25 eventos por
-minuto, os pares precisaram retroceder 3\% do tempo.
-Eles devem deixar claro porque isso é uma vantagem e qual a média de período de
-tempo aceitável para retrocesso.
-
-- O design experimental precisa ser melhor descrito.
-Apenas o emulador das latências é descrito (NetEm).
-Como foi realizada (ou qual ferramenta foi usada) a simulação dos experimentos?
-
-- Apenas aplicações com deadline mais curtos adequam-se melhor ao middleware.
-Os autores precisam explicar no texto os resultados dos experimentos com maior
-latência também (100ms, 250ms e 500ms).
-\end{comment}
-
 Real-time networked applications allow multiple users to interact remotely and
 yet share the same experience.
 Examples of these \emph{symmetric distributed applications}~\cite{gals} are
@@ -143,6 +128,10 @@ For the goal (a), we analyze the scenarios in which the middleware can meet
 event deadlines with the desired performance.
 As an example, peers need to roll back only $3\%$ of the time under a network
 latency of $50ms$ and 25 events per minute.
+%
+We consider this overhead negligible for soft real-time applications that do
+not depend on instantaneous network feedback, such as chats, watch parties, and
+turn-based games.
 
 In Section~\ref{sec.related}, we revisit existing solutions for symmetric
 distributed applications.
@@ -525,7 +514,7 @@ presses:
 ~
 \begin{verbatim}
 enum {
-    P2P_EVT_KEY = P2P_EVT_NEXT // key is next to predefs
+    P2P_EVT_KEY = P2P_EVT_NEXT // KEY after predefs
 };
 \end{verbatim}
 ~
@@ -934,7 +923,13 @@ our experiments.
 For instance, a straight line of 15 peers is a subset of our topology, as well
 as two cycles separated by a single peer.
 
-We run the application main loop at $50~FPS$ ($20ms$ per frame) and calculate
+\begin{comment}
+- O design experimental precisa ser melhor descrito.
+Apenas o emulador das latências é descrito (NetEm).
+Como foi realizada (ou qual ferramenta foi usada) a simulação dos experimentos?
+\end{comment}
+
+We run the application main loop at 50 FPS ($20ms$ per frame) and calculate
 the middleware overhead at each iteration.
 We found a negligible overhead of $9us$ in the average, which corresponds to
 less than $1/2000$ of the CPU time.
@@ -972,6 +967,8 @@ The experiments take around $40$ hours to complete.
   \includegraphics[width=\linewidth]{baks}
   \caption{
     \label{fig.baks}
+The squares show the percentage of time travels.
+%
 The $5x$, $2x$, and $x$ $\Delta$ regions each contains $36$ measures for
 multiple configurations of network latencies ($5-500ms$) and event rates
 ($5-200~evt/min$).
@@ -1069,13 +1066,19 @@ event deadlines with the desired performance.
 For instance, high event deadlines (column $5x$) make all scenarios viable,
 even with high latencies and event frequencies.
 As an application example, chats are not affected by higher event deadlines.
-Nevertheless, the higher is the deadline, the less applications suit the
+Nevertheless, the lower is the deadline, the less applications suit the
 middleware.
 %
 For the lowest possible $\Delta$ (column $1x$), we see that the middleware can
 either handle low latencies with high event frequencies (e.g., $5ms$ with
-$100evt/min$) or high lantencies with low event frequencies (e.g., $100ms$ with
+$100evt/min$) or high latencies with low event frequencies (e.g., $100ms$ with
 $5evt/min$).
+%
+The middleware does not perform well under higher network latencies (e.g., over
+$250ms$).
+This is expected since peers that are multiple hops away take too long to
+synchronize past events and may generate future events in the meantime, which
+causes time travels.
 %
 In summary, the color patterns in the table provide the necessary information
 to confront an application with its feasibility or desired performance.
