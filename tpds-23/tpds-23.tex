@@ -933,6 +933,9 @@ We run the application main loop at 50 FPS ($20ms$ per frame) and calculate
 the middleware overhead at each iteration.
 We found a negligible overhead of $9us$ in the average, which corresponds to
 less than $1/2000$ of the CPU time.
+This means that an application using the middleware would perform all network
+synchronization and still have almost 100\% of the CPU time for its actual
+domain logic.
 %
 In order to have an absolute clock, we use a single machine to simulate all
 peers, allowing us to merge their logs into a single file with a comparable
