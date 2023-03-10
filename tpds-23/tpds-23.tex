@@ -69,38 +69,20 @@ publish-subscribe, reputation system, VCS
 \section{Introduction}
 \label{sec.introduction}
 
- 6. ***How does the middleware handle consistency when advancing or rollbacking in  time to synchronize?***
-About #6, this is a valid criticism and we should include a brief discussion about consistency models and position our work on this spectrum.
-The facts that peers share a global clock and go through bit-identical steps may characterize strict consistency.
-However, since the global clocks may diverge temporarily, we must rely on rollbacks.
-The key to preserve consistency in the presence of rollbacks is to restrict our programming API to deterministic and stateless calls only.
-This way, it is not possible to diverge from other peers, for example, by re-executing stateful file operations multiple times (or at different times).
+\begin{comment}
+Os autores mencionam que em cenário com latência de 50ms e 25 eventos por
+minuto, os pares precisaram retroceder 3\% do tempo.
+Eles devem deixar claro porque isso é uma vantagem e qual a média de período de
+tempo aceitável para retrocesso.
 
-&gt; A apresentação da solução entra em um nível de detalhamento muito baixo...
-  ...na decisão da topologia utilizada na simulação não fica muito claro se  essa topologia representa algum cenário específico.
+- O design experimental precisa ser melhor descrito.
+Apenas o emulador das latências é descrito (NetEm).
+Como foi realizada (ou qual ferramenta foi usada) a simulação dos experimentos?
 
-Sobre a topologia escolhida, optamos por misturar 3 arranjos abstratos:
-
-1. linha contínua
-2. ciclo fracamente conectado
-3. ciclo totalmente conectado
-
-Entendemos que casos concretos que sejam subconjuntos dos arranjos acima terão desempenho igual ou superior ao exibido na Figura 7.
-Por exemplo, uma linha contínua de até 15 nós é um subconjunto da topologia escolhida, assim como dois ciclos conectados separados por um nó.
-Assim, pretendemos atender a um número maior de cenários, mesmo que isso dependa de uma interpretação mais apurada por parte dos interessados.
-De qualquer maneira, a escolha é arbitrária e não representa um cenário concreto.
-
-&gt; Figures 1 and 2 create an expectation of approaches comparison; I suggest writing in the motivation why there will be no clear comparison in the
-  experimental results.
-We will be more explicit about this in Sections 2/4, since it is not possible to reproduce our experiment in centralized solutions (the topology is inherently peer-to-peer).
-We only discuss the performance of related works based on their claims and also on theoretical upper limits."
-
-Os autores mencionam que em cenário com latência de 50ms e 25 eventos por minuto, os pares precisaram retroceder 3\% do tempo. Eles devem deixar claro porque isso é uma vantagem e qual a média de período de tempo aceitável para retrocesso.
-- Nos trabalhos relacionados, apenas propostas centralizadas são mencionadas e comparadas. Não há propostas descentralizadas para comparação também? Sugiro expandir essa seção.
-- O design experimental precisa ser melhor descrito. Apenas o emulador das latências é descrito (NetEm). Como foi realizada (ou qual ferramenta foi usada) a simulação dos experimentos?
-- Apenas aplicações com deadline mais curtos adequam-se melhor ao middleware.  Os autores precisam explicar no texto os resultados dos experimentos com maior latência também (100ms, 250ms e 500ms).
-- Os autores precisam deixar claro o benefício de usar uma solução descentralizada desde que o seu desempenho é menor que as soluções centralizadas.
-
+- Apenas aplicações com deadline mais curtos adequam-se melhor ao middleware.
+Os autores precisam explicar no texto os resultados dos experimentos com maior
+latência também (100ms, 250ms e 500ms).
+\end{comment}
 
 Real-time networked applications allow multiple users to interact remotely and
 yet share the same experience.
@@ -137,8 +119,8 @@ networks~\cite{p2p.survey}.
 Events are flooded in the graph and are applied with a small deadline delay to
 compensate the network latency.
 To deal with events received out of order or too late, a distributed time
-machine can rollback peers to a previous state and reapply events in order and
-in time.
+machine can rollback peers to previous states and reapply the events in order,
+such that a single consistent timeline is established across the network.
 Our main contribution is the design of a middleware to ensure that all peers
     (a) meet event deadlines,
     (b) advance in sync in real time, and
@@ -257,6 +239,21 @@ deterministic and stateless calls.
 This way, it is guaranteed that all clients reach the same state, and
 observe bit-identical steps.
 
+In this work, as indicated in Figure~\ref{fig.table}, our goal is to support
+peer-to-peer (a) real-time symmetric execution, while still tolerating
+out-of-order (b) and offline (c) event generation.
+%
+As detailed in Figure~\ref{fig.algos}, peers have independent timelines and
+can communicate events directly to each other.
+Event deadlines are delayed to be able to reach other peers in time.
+In the case a deadline is missed, the peer rolls back in time and then fast
+forwards execution until it catches real-time behavior again.
+%
+Like Croquet and GALS, peers compute events in sequence using deterministic and
+stateless calls only.
+
+\subsection{Conflict-free Replicated Data Types}
+
 An antagonistic approach to deterministic reactions to events is to model the
 applications with Conflict-free Replicated Data Types~\cite{crdts}.
 CRDTs are designed in such a way that all operations are commutative, so that
@@ -284,19 +281,6 @@ applied immediately, even while offline (c).
 %
 Automerge along with its accompanying Hypermerge peer-to-peer infrastructure
 is an example of decentralized CRDTs~\cite{p2p.automerge,p2p.pushpin}.
-
-In this work, as indicated in Figure~\ref{fig.table}, our goal is to support
-peer-to-peer (a) real-time symmetric execution, while still tolerating
-out-of-order (b) and offline (c) event generation.
-%
-As detailed in Figure~\ref{fig.algos}, peers have independent timelines and
-can communicate events directly to each other.
-Event deadlines are delayed to be able to reach other peers in time.
-In the case a deadline is missed, the peer rolls back in time and then fast
-forwards execution until it catches real-time behavior again.
-%
-Like Croquet and GALS, peers compute events in sequence using deterministic and
-stateless calls only.
 
 \subsection{Time Machines}
 
@@ -388,7 +372,8 @@ synchronized events.
 Note that ticks need not to be broadcast, only $\Delta$ events.
 
 The main job of the middleware is to deal with the uncertainties of the
-network in order to preserve the symmetric behavior across peers.
+network in order to provide a consistent timeline and preserve the symmetric
+behavior across peers.
 As described in the Introduction, the middleware ensures that all peers
     (a) meet event deadlines,
     (b) advance in sync in real time, and
@@ -862,7 +847,7 @@ experience smooth time transitions.
 \subsubsection{Summary}
 \label{sec.tml.middleware.summary}
 
-This section provides an overview of the middleware implementation to answer
+This section provided an overview of the middleware implementation to answer
 how it ensures the desired properties in concrete terms as follows:
     (a) peers meet event deadlines either travelling back and forth or in real
         time (Section \ref{sec.tml.middleware.loop}: \linx{12--16} or
@@ -873,6 +858,14 @@ how it ensures the desired properties in concrete terms as follows:
     (c) peers can join the network at any time and still catch up in time by
         receiving the full event history
         (Section~\ref{sec.tml.middleware.events}).
+
+The fact that peers share a global timeline of event, and that they go through
+bit-identical steps ensures consistency in the network.
+However, since the clocks may diverge temporarily, we must rely on rollbacks.
+Therefore, the key to preserve consistency in the presence of rollbacks is to
+restrict our programming API to deterministic and stateless calls only.
+This way, it becomes impossible to diverge from other peers by, for example,
+re-executing stateful file operations multiple times (or at different times).
 
 %\newpage
 \section{Evaluation}
@@ -933,7 +926,14 @@ We perform simulations with 21 peers using the mixed topology of
 Figure~\ref{fig.topo}, with peers organized in straight lines and cycles.
 The topology has an average of 5 hops between peers (e.g., \code{4-16} are 7
 hops away).
-%
+We opted to mix three abstract arrangements:
+    (i) straight lines, and (ii) weakly and (iii) strongly connected cycles.
+Even though this topology is arbitrary, we can expect that concrete scenarios
+with subsets of these arrangements will have at least the same performance of
+our experiments.
+For instance, a straight line of 15 peers is a subset of our topology, as well
+as two cycles separated by a single peer.
+
 We run the application main loop at $50~FPS$ ($20ms$ per frame) and calculate
 the middleware overhead at each iteration.
 We found a negligible overhead of $9us$ in the average, which corresponds to
@@ -1081,18 +1081,6 @@ In summary, the color patterns in the table provide the necessary information
 to confront an application with its feasibility or desired performance.
 
 \subsection{Discussion}
-
-local-first
-Apesar dos rollbacks quando a rede se reconecta serem inevitáveis, os seus efeitos podem ser imperceptíveis para os usuários finais (e.g., quando há pouca
-atividade ou dependência entre eventos).
-
-O principal benefício é que a aplicação continua funcionando mesmo com a
-presença de partições na rede, o que inclui a queda do (que seria o) servidor
-em uma solução centralizada.
-
-Levando essa possibilidade ao extremo, um peer ainda poderia funcionar
-normalmente mesmo que totalmente offline por um determinado período (como é
-comum em pesquisas recentes em &quot;local-first software&quot;).
 
 Many aspects may affect the performance of symmetric distributed applications,
 such as
