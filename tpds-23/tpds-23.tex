@@ -1170,6 +1170,8 @@ For the lowest possible $\Delta$ (column $1x$), we see that the middleware can
 either handle low latencies with high event frequencies (e.g., $5ms$ with
 $100evt/min$) or high latencies with low event frequencies (e.g., $100ms$ with
 $5evt/min$).
+Note that the middleware cannot ensure \emph{instantaneity} for events in most
+scenarios, which would require a very low $\Delta$~\cite{melding}.
 %
 The middleware does not perform well under higher network latencies (e.g., over
 $250ms$).
