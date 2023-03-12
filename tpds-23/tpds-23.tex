@@ -85,7 +85,7 @@ as \emph{state melding}~\cite{melding} in the context of virtual worlds, which
 adds the requirement of a time deadline to reach consistency.
 
 A common approach towards symmetric applications is to introduce a middleware
-to orchestrate events and time in the network~\cite{gals,croquet}.
+to orchestrate events and time in the network~\cite{gals,croquet2}.
 This way, applications developers can rely on middleware primitives to trigger
 events, which are intercepted and synchronized in a global shared timeline
 across the network.
@@ -122,7 +122,7 @@ peers simultaneously at time $t+\Delta$.
 %
 As the main limitation, the middleware cannot ensure \emph{instantaneity} for
 events in most scenarios, which would require $\Delta$ to be less than a
-perceptive threshold~\cite{melding}.
+user-observable threshold~\cite{melding}.
 We also that assume peers are non malicious in the sense that they do not lie
 about the time in which events occurred locally.
 
@@ -202,8 +202,8 @@ distributed time machines.
 
 \subsection{Symmetric Distributed Applications}
 
-Croquet~\cite{croquet,croquet.site} guarantees bit-identical real-time behavior
-for users in collaborative distributed environments.
+Croquet~\cite{croquet,croquet2,croquet.site} guarantees bit-identical real-time
+behavior for users in collaborative distributed environments.
 %
 As detailed in Figure~\ref{fig.algos}, a centralized \emph{reflector} issues
 fixed periodic ticks (e.g., every $50ms$), such that all nodes in the network
@@ -312,6 +312,15 @@ As indicated in Figure~\ref{fig.table}, CRDTs work on
 Automerge~\cite{p2p.automerge} along with its accompanying
 Hypermerge~\cite{p2p.pushpin} peer-to-peer infrastructure is an example of
 decentralized CRDTs.
+
+The main advantage of CRDTs is that they can be designed in such a way that
+concurrent modifications to shared state can preserve intent~\cite{peritext},
+regardless of the order in which they are applied.
+%
+This is not the case for the symmetric application middlewares described in the
+previous section.
+Nevertheless, programmers can still use CRDTs on top of a middleware, since
+they are nothing more than data structures and merging algorithms.
 
 CRDTs provide \emph{delayed consistency}~\cite{melding}, as follows:
 
@@ -1208,7 +1217,7 @@ As pointed out in column (c) of Figure~\ref{fig.table}, centralized solutions
 require that clients are permanently connected with the server, which is
 responsible to control the shared timeline of events.
 
-The performance of Croquet~\cite{croquet} depends exclusively on the network
+The performance of Croquet~\cite{croquet2} depends exclusively on the network
 latency, which restricts the application to a maximum FPS.
 For instance, since all frame ticks need to be transmitted over the network,
 a latency of 50ms supports at most 20 FPS.
@@ -1250,7 +1259,7 @@ in which interacting peers conform to identical behavior without a centralized
 coordination server.
 %
 The middleware API shares similar limitations with centralized
-alternatives~\cite{gals,croquet}, being restricted to deterministic and
+alternatives~\cite{gals,croquet2}, being restricted to deterministic and
 stateless calls. %, and only supports pre-allocated memory.
 %
 %To our knowledge, it is the first middleware to support bit-identical real-time
