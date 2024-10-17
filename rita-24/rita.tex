@@ -197,6 +197,12 @@ In Section~\ref{sec.conclusion}, we conclude this work.
 \section{Related Work}
 \label{sec.related}
 
+This section first revisits existing solutions for symmetric distributed
+applications, namely Croquet~\cite{croquet}, GALS~\cite{gals}, and
+CRDTs~\cite{crdts}.
+Then, we discuss software time machines that are built for either local or
+networked applications.
+
 \subsection{Symmetric Distributed Applications}
 \label{sec.related.sym}
 
@@ -226,13 +232,20 @@ In Section~\ref{sec.conclusion}, we conclude this work.
   }
 \end{figure*}
 
-In this section, we revisit existing solutions for symmetric distributed
-applications.
-We focus on
-    (a) how the network is organized,
-    (b) how global time is determined, and
-    (c) how events are propagated and applied.
+Even though existing solutions aim to provide symmetric behavior for
+distributed applications, they diverge in three key aspects as follows:
+
+\textbf{a.} How the network is organized.
+
+\textbf{b.} How global time is determined.
+
+\textbf{c.} How events are propagated and applied.
+
 Figure~\ref{fig.table} compares three selected works regarding these aspects.
+We now discuss these works with respect to the three aspects, while comparing
+with our approach.
+At the end of this section, we also provide initial details on how our
+middleware works.
 
 Croquet%
 \footnote{Croquet.io: https://croquet.io/}~\cite{croquet} guarantees
@@ -333,7 +346,9 @@ stateless calls only.
 \subsection{Software Time Machines}
 \label{sec.related.time}
 
-We now discuss related work on decentralized and centralized time machines.
+%We now discuss related work on decentralized and centralized time machines.
+
+A software time machine is a mechanism that allows to
 
 Regarding decentralized machines, Fusion%
 \footnote{Fusion: \url{https://doc.photonengine.com/en-us/fusion}}
@@ -456,7 +471,7 @@ Since peers run in different machines, their timelines will inevitably be out
 of sync because applications are launched locally at different times, and
 because internal clocks may diverge over time (e.g., from rollbacks or timer
 polling inaccuracies).
-The middleware assumes the maximum time among all peers the be the
+The middleware assumes the maximum time among all peers to be the
 ``correct real time'', so that other peers must fast forward to catch up with
 it.
 Therefore, in order to determine the maximum time and synchronize the clocks,
@@ -707,8 +722,8 @@ vector position and triggers an event propagation to neighbours.
 As mentioned in Section~\ref{sec.tml.api}, we assume that peers assign
 themselves unique identifiers in a contiguous range, such that they fit in a
 simple vector of timestamps.
-Therefore, this is not a severe limitation, and a separate mechanism could be
-used for assignments, with few modifications to the core of the middleware.
+%Therefore, this is not a severe limitation, and a separate mechanism could be
+%used for assignments, with few modifications to the core of the middleware.
 
 When receiving an unseen event, the middleware also enqueues it in timestamp
 order and calls the application callback \code{cb\_sim} at the appropriate
