@@ -460,6 +460,8 @@ which synchronizes them with a timestamp with a $\Delta$ delay scheduled to the
 future, such that all peers can satisfy.
 The middleware controls the execution of the application by issuing ticks and
 synchronized events.
+Note that all peers execute the exactly same application and middleware, with
+no differences with respect to their roles and physical resources.
 
 The main job of the middleware is to deal with the uncertainties of the
 network in order to preserve the symmetric behavior across peers.
@@ -481,8 +483,8 @@ event at the correct time, and then fast forwards the peer, re-applying all
 remaining events up to the real time.
 As we detail further, rolling back a peer requires to simulate the whole
 application execution from the beginning.
-As an optimization, the middleware takes periodic snapshots locally to avoid
-full simulation.
+As an optimization, the middleware takes periodic snapshots locally at all
+peers to avoid full simulation.
 %
 \item \textbf{Time Synchronization:}
 Since peers run in different machines, their timelines will inevitably be out
@@ -510,6 +512,8 @@ receives from other peer all events that ever happened, in order.
 This is trivial since all peers already need to hold the full event history (as
 described in item (a)), including their absolute timestamps in the shared
 timeline.
+In addition, a peer that rejoins the network recovers from a past snapshot it
+already holds, thus avoiding full simulation.
 \end{enumerate}
 
 \subsection{The Programming API}
@@ -740,8 +744,6 @@ vector position and triggers an event propagation to neighbours.
 As mentioned in Section~\ref{sec.tml.api}, we assume that peers assign
 themselves unique identifiers in a contiguous range, such that they fit in a
 simple vector of timestamps.
-%Therefore, this is not a severe limitation, and a separate mechanism could be
-%used for assignments, with few modifications to the core of the middleware.
 
 When receiving an unseen event, the middleware also enqueues it in timestamp
 order and calls the application callback \code{cb\_sim} at the appropriate
@@ -768,6 +770,14 @@ struct {
 } PAKS;
 \end{verbatim}
 }
+
+Considering the peer-to-peer network as a whole, each event packet is
+replicated to all neighbours of all peers.
+This results in a theoretical limit of quadratic messages if all peers are
+connected to all peers.
+In contrast, as discussed in Section~\ref{sec.related.sym}, a centralized
+solution only requires a packet to be sent to a server, which then broadcasts
+it to all clients.
 
 \subsubsection{The Main Loop}
 \label{sec.tml.middleware.loop}
@@ -898,6 +908,46 @@ how it ensures the desired properties in concrete terms as follows:
     (c) peers can join the network at any time and still catch up in time by
         receiving the full event history
         (Section~\ref{sec.tml.middleware.events}).
+
+\subsection{Middleware Limitations}
+\label{sec.tml.limitations}
+
+As discussed in Section~\ref{sec.tml.api}
+
+unique identifier in a contiguous range.
+%Therefore, this is not a severe limitation, and a separate mechanism could be
+%used for assignments, with few modifications to the core of the middleware.
+
+{\footnotesize
+\begin{verbatim}
+struct {
+    // FIXED REGION
+    int x,  y;   // position
+    int dx, dy;  // direction speed
+    // VARIABLE REGION
+    char heap[HEAP_SIZE];
+} G;
+
+T* obj = my_malloc(G.heap, <size>);
+<...>
+my_free(obj);
+\end{verbatim}
+}
+
+struct {
+int x, y;
+int dx, dy;
+} G;
+
+- snapshots
+- memory alloc
+- fixed ids
+- network real
+- deterministic
+Developers must also restrict themselves to deterministic and stateless calls
+only, such that execution can be equally reproduced in all nodes according to
+the shared timeline.
+
 
 %\newpage
 \section{Evaluation}
@@ -1140,7 +1190,6 @@ scenarios that the middleware can handle.
 For instance, in a simulation scenario of 25 events per minute with a network
 latency of $50ms$, the peers need to roll back and resynchronize only $3\%$ of
 the time.
-
 
 %----------------------------------------------------------------------------------------
 %	REFERENCE LIST

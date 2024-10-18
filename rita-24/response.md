@@ -9,9 +9,15 @@ with a *diff* between the versions, as follows:
 
 https://
 
-Based on the overall comments, our focus on the final version was to make the
-limitations of our work more explicit, and to improve the section on related
-work.
+Based on the overall comments, our focus on the final version was to improve
+the section on related work, and to make the limitations of our proposal more
+explicit.
+For that matter, we expanded the section on related work splitting it in two
+subsections
+    "2.1 Symmetric Distributed Applications" and
+    "2.2 Software Time Machines".
+We also included a new section "3.3 Middleware Limitations" to discuss the
+limitations of our work.
 
 We also address each individual comment from all reviewers as follows...
 
@@ -74,7 +80,7 @@ Regarding the section on related work:
 
 -------------------------------------------------------------------------------
 
-Regarding the limiations:
+Regarding the limitations:
 
 > <...>
 > c) The paper could discuss the limitations of the proposed approach and
@@ -111,9 +117,9 @@ Regarding the section on related work (comments J.1-J.5):
 
 As suggested, we split Section 2 in two:
 
-- 2.1. Symmetric Distributed Applications: discussion on the selected works,
+- 2.1 Symmetric Distributed Applications: discussion on the selected works,
     and comparison with our proposal.
-- 2.2. Software Time Machines: expanded and improved discussion on time
+- 2.2 Software Time Machines: expanded and improved discussion on time
     machines.
 
 ### Comment J.2
@@ -177,7 +183,7 @@ of the section:
 > introducing the time machines aspect well to the reader.
 
 The discussion was indeed abrupt and out of context, so we reshaped the new
-subsection 2.2. We included two new parapgrahs at the very beginning, in which
+subsection 2.2. We included two new paragraphs at the very beginning, in which
 we discuss
     (a) what a software time machine is,
     (b) in which scenarios it appears,
@@ -255,7 +261,25 @@ Therefore, we do consider the implication of hops and latency in the protocol.
 > off?
 
 The full history of both events and memory snapshots are stored in all peers.
-Therefore, an offline peer that joins
+There are no differences among peers with respect to their roles: any peer can
+fail and any peer can offer full recovery.
+Therefore, an offline peer that (re)joins the network already holds past
+snapshots, and can fully recover from any direct neighbour.
+
+We added a remark at the beginning of Section 3 "The Middleware & Programming
+API", when describing the middleware architecture with Figure 4:
+
+> Note that all peers execute the exactly same application and middleware, with
+> no differences with respect to their roles and physical resources.
+
+We now also explicit that snapshots are replicated, further in the same
+section:
+
+> As an optimization, the middleware takes periodic snapshots locally *at all
+> peers* to avoid full simulation.
+> <...>
+> In addition, a peer that rejoins the network recovers from a past snapshot it
+> already holds, thus avoiding full simulation.
 
 ### Comment J.10
 
@@ -263,11 +287,37 @@ Therefore, an offline peer that joins
 > no actual considerations due to the effect of network challenges. Is this the
 > case?
 
+The evaluation requires a synchronized global clock that can measure
+differences in the order of milliseconds.
+We use Linux's NetEm to emulate network latency, but do not consider other
+network challenges.
+That being said, latency is the only network dependent parameter that we
+evaluate.
+
+We 
+
+
 ### Comment J.11
 
 > v) Although this was considering the middleware only, it would be important
 > to talk about the impact in terms of network efficiency if any due to the
 > middleware.
+
+I'm not sure if I understand this comment correctly.
+In Section 4, we discuss the negligible CPU impact the middleware has over the
+application as a whole, which is 9us every 20ms.
+Regarding the network, the middleware only receives and forwards event packets
+among neighbours, in the same way typical flooding protocols behave.
+
+We now include a discussion about packet forwarding at the end of Section
+"3.2.1 Event Dissemination":
+
+> Considering the peer-to-peer network as a whole, each event packet is
+> replicated to all neighbours of all peers.
+> This results in a theoretical limit of quadratic messages if all peers are
+> connected to all peers.
+> In contrast, as discussed in Section 2, a centralized solution only requires
+> a packet to be sent to a server, which then broadcasts it to all clients.
 
 -------------------------------------------------------------------------------
 
