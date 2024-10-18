@@ -348,7 +348,27 @@ stateless calls only.
 
 %We now discuss related work on decentralized and centralized time machines.
 
-A software time machine is a mechanism that allows to
+A software time machine is a mechanism that allows to regress or advance the
+execution of an application.
+%
+Time travelling is a established research topic for debugging
+tools~\cite{tml.review}.
+In this context, it is possible to stop a program after a failure and revert
+its execution in order to understand the bug causes.
+%
+In our context of real-time symmetric applications, time travelling is
+essential to re-synchronize the execution of mirrored instances that diverge
+due to asynchronous events.
+
+Fundamentally, it is not possible to reverse the execution of most programs.
+The reason is because even trivial operations, such as `printf` and `abs` are
+not invertible.
+Therefore, time machines rely on techniques that either \emph{record} the
+entire application states in a log, or \emph{reconstruct} them from
+deterministic inputs~\cite{tml.review}.
+%
+In this work, we mix both techniques by taking periodic memory snapshots and
+simulating deterministic inputs in between them.
 
 Regarding decentralized machines, Fusion%
 \footnote{Fusion: \url{https://doc.photonengine.com/en-us/fusion}}
@@ -363,8 +383,6 @@ The shared mode is less powerful and only supports eventual consistency among
 clients.
 We presume that the reason is because continuous memory snapshots would be too
 costly without a central server.
-
-TODO: old 198?
 
 Regarding single-user local machines, the video game Braid%
 \footnote{Braid: \url{http://braid-game.com/}}

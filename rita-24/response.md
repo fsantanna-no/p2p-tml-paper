@@ -40,6 +40,8 @@ The experiments take around 40 hours to complete.
 40s online and 20s offline in the
 average, including peers 9-11 in the middle of the network.
 
+-------------------------------------------------------------------------------
+
 ## Reviewer A
 
 Regarding the experimental evaluation:
@@ -63,10 +65,14 @@ Regarding the experimental evaluation:
 > might arise in real-world deployments with potentially hundreds or thousands
 > of peers?
 
+-------------------------------------------------------------------------------
+
 Regarding the section on related work:
 
 > a) The related work section could be expanded to include more recent work on
 > peer-to-peer systems and distributed consensus algorithms;
+
+-------------------------------------------------------------------------------
 
 Regarding the limiations:
 
@@ -77,6 +83,8 @@ Regarding the limiations:
 > The paper assumes non-malicious peers. What security measures or
 > modifications would be necessary to protect against malicious peers
 > attempting to disrupt the synchronization or inject false events?
+
+-------------------------------------------------------------------------------
 
 Regarding the middleware & protocol:
 
@@ -91,7 +99,7 @@ Regarding the middleware & protocol:
 
 ## Reviewer J
 
-Regarding the section on related work (comments J.1-J.6):
+Regarding the section on related work (comments J.1-J.5):
 
 ### Comment J.1
 
@@ -103,8 +111,10 @@ Regarding the section on related work (comments J.1-J.6):
 
 As suggested, we split Section 2 in two:
 
-- 2.1. Symmetric Distributed Applications
-- 2.2. Software Time Machines
+- 2.1. Symmetric Distributed Applications: discussion on the selected works,
+    and comparison with our proposal.
+- 2.2. Software Time Machines: expanded and improved discussion on time
+    machines.
 
 ### Comment J.2
 
@@ -114,10 +124,8 @@ As suggested, we split Section 2 in two:
 > However, this three aspects are actually related to the discussion on the
 > selected works compared to the proposed solution.
 
-To make clear that we have only two subsections, we now briefly introduce 2.1
+Now, to make clear that we have only two subsections, we briefly introduce 2.1
 and 2.2 with paragraph at the beginning of 2 (before 2.1 and 2.2):
-
-### Comment J.3
 
 > This section first revisits existing solutions for symmetric distributed
 > applications, namely Croquet [2], GALS [1], and CRDTs [3]. Then, we discuss
@@ -135,15 +143,15 @@ of 2.1:
 > Figure 1 compares three selected works regarding these aspects.
 > <...>
 
-### Comment J.4
+### Comment J.3
 
 > --> There is a need to reorganize the related works section, with a proper
 > introduction showing the two core aspects of the discussion, (1) and (2) as
 > indicated in i), forming the introduction to the section.
 
-Done.
+Done, as detailed in J.1 and J.2.
 
-### Comment J.5
+### Comment J.4
 
 > iii) The discussion does not have a very smooth transition. The punchline of
 > the related works section should ideally be the proposal of this work, which
@@ -159,7 +167,7 @@ of the section:
 > our approach. At the end of this section, we also provide initial details on
 > how our middleware works.
 
-### Comment J.6
+### Comment J.5
 
 > iv) The discussion on related work on time machines is rather abrupt.
 > It does not have a proper introduction to the problem of time machines in
@@ -168,50 +176,112 @@ of the section:
 > --> What is aimed by this section? Answering this can help find a way of
 > introducing the time machines aspect well to the reader.
 
-It was indeed abrupt and out of context.
-We now start discussing (a) what a software time machine is, (b) what are the
-difficulties to xxx, and (c) what are the common implementation techniques.
-Then, we
+The discussion was indeed abrupt and out of context, so we reshaped the new
+subsection 2.2. We included two new parapgrahs at the very beginning, in which
+we discuss
+    (a) what a software time machine is,
+    (b) in which scenarios it appears,
+    (c) what are the challenges to overcome, and
+    (d) what are the common implementation techniques.
 
-Regarding peer-to-peer networks, applications, and protocols (comments J.1-J.6):
+-------------------------------------------------------------------------------
+
+Regarding the protocol, middleware, and peer-to-peer concepts (comments
+J.7-J.11):
 
 ### Comment J.7
-
-> <...>
-> However, in a discussion on p2p application, or even systems, it is necessary
-> to highlight the underlying infrastructure to dispel any doubts.
-> In this regard, the reviewer would have expected to see the following
-> addressed:
 
 > i) As a proof-of-concept, it will be important to have p2p
 > model/framework to give a clear picture to an expert reader and explain to a
 > lay reader the place of this middleware in the overall p2p application
 > model/framework. Has this been considered?
 
+### Comment J.8
+
 > ii) This proposal uses broadcasting to synchronize peers. What is the
 > implication of this assuming a large p2p network? Has this been considered?
 
+The use of the term "broadcast" was inaccurate in the paper.
+Now, every occurrence of "broadcast" was substituted by "trigger" or
+"propagation" or "dissemination", depending on the context.
+
+As was described in the Introduction,
+
+> Peers in the application form a dynamic network graph and communicate only
+> with direct neighbours, as in typical unstructured peer-to-peer networks.
+> Events are flooded in the graph and are triggered locally with a small delay
+> to compensate the network latency.
+
+What we meant is that the same effect of a broadcast is reached after the
+events are flooded in the network, but only through direct neighbour
+communication.
+Nevertheless, we no longer use this loosened notion of a broadcast.
+
+We now also emphasize this distinction from centralized solutions (which do
+rely on broadcasts) in the Related Work section:
+
+> Note how the central server is the only participant with knowledge about
+> clients, which never communicate directly.
+> This implies that the server must never fail, and also that periodic full
+> broadcasts are the only possibility of spanning the whole network.
+> In this work, we argue that in a peer-to-peer alternative any node can fail,
+> and that broadcasts can be replaced by optimistic flooding.
+> <...>
+> Note, that it is not necessary that all peers communicate directly with all
+> other peers, but only indirectly via unstructured flooding.
+> <...>
+
+Section "3.2.1 Event Broadcasting" was renamed to "3.2.1 Event Dissemination"
+with the introduction rephrased as follows:
+
+> <...>, events *propagate* between peers with a timestamp scheduled to the
+> future with an extra delta ∆ such that all peers are able to apply them in
+> sync. To prevent *dissemination* cycles, each peer <...>
+
+To conclude, there are no full broadcasts in the protocol.
+Regardless of the network size, peers only communicate with direct neighbours.
+In our experiments, flooding takes 5 hops in the average, with a maximum of 14
+hops (between nodes 0 and 20).
+As an example, with a *100ms* network latency, it takes *500ms* in the average
+to flood an event in the P2P graph.
+We detail these costs in Figure 6.
+Therefore, we do consider the implication of hops and latency in the protocol.
+
+### Comment J.9
+
 > iii) How are the events, as well as the memory snapshots, stored for
 > persistence in the p2p network, that is, is there a storage mechanisms used
-> so that an offline who joins immediately picks up from where it had dropped off?
+> so that an offline who joins immediately picks up from where it had dropped
+> off?
+
+The full history of both events and memory snapshots are stored in all peers.
+Therefore, an offline peer that joins
+
+### Comment J.10
 
 > iv) The simulations were done on the same machine. This means that there is
 > no actual considerations due to the effect of network challenges. Is this the
 > case?
 
+### Comment J.11
+
 > v) Although this was considering the middleware only, it would be important
 > to talk about the impact in terms of network efficiency if any due to the
 > middleware.
 
-Regarding grammar issues:
+-------------------------------------------------------------------------------
 
-### Comment J.X
+Regarding grammar issues (comments J.12-J.13):
+
+### Comment J.12
 
 > Figure 2 - GALS --> check the spelling for client
 
-OK.
+Fixed.
+
+### Comment J.13
 
 > <...>
 > This should be ...among all peers to be the “correct real time”,...
 
-OK.
+Fixed.
