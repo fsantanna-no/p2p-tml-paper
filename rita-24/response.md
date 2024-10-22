@@ -12,39 +12,31 @@ https://
 Based on the overall comments, our focus on the final version was to improve
 the section on related work, and to make the limitations of our proposal more
 explicit.
-For that matter, we expanded the section on related work splitting it in two
+
+For that matter, we expanded Section "2. Related Work" by splitting it in two
 subsections
-    "2.1 Symmetric Distributed Applications" and
-    "2.2 Software Time Machines".
-We also included a new section "3.3 Middleware Limitations" to discuss the
-limitations of our work.
+    "2.1. Symmetric Distributed Applications" and
+    "2.2. Software Time Machines".
+
+We also expanded Section "3.2.4. Middleware Summary" to discuss its
+limitations, and added a paragraph at the end of Section "4. Evaluation" with
+the same goal.
+As detailed next, we discuss and justify the following limitations: peer
+identifiers, deterministic API, static memory, snapshots footprint,
+non-malicious peers, and network size.
 
 We also address each individual comment from all reviewers as follows...
 
-- usar argumento de que centralizados precisam de bcast
-- nosso caso é p2p, nem existe possibilidade de bcast pois nos nao tem
-  conhecimento da rede
-- possibilidade vem da existencia da time machine, que nao existe nos centralizados
+-------------------------------------------------------------------------------
 
-In particular, the dependency on a central server
+EVALUATION
 
 - target small P2P networks
     - examples / topology extrapolate the target
-
-- pq exec local?
-we use an absolute simulation clock to track
-
-The topology has an average of 5 hops between peers
+- The topology has an average of 5 hops between peers
     - ja é bastante radical
-
-We use NetEm [9] to simulate the network latency with
-a normal distribution.
-
-The experiments take around 40 hours to complete.
-
-
-40s online and 20s offline in the
-average, including peers 9-11 in the middle of the network.
+- The experiments take around 40 hours to complete.
+- 40s online and 20s offline in the average, including peers 9-11 in the middle of the network.
 
 -------------------------------------------------------------------------------
 
@@ -82,26 +74,103 @@ Regarding the section on related work:
 
 Regarding the limitations:
 
+### Comment A.TODO
+
 > <...>
 > c) The paper could discuss the limitations of the proposed approach and
 > potential future work.
+
+### Comment A.TODO
+
 > <...>
 > The paper assumes non-malicious peers. What security measures or
 > modifications would be necessary to protect against malicious peers
 > attempting to disrupt the synchronization or inject false events?
 
+We assume non-malicious peers in the network.
+This is a fundamental limitation also shared by the alternatives discussed in
+related work.
+Even with CRDTs, nothing prevents a malicious peer to inject 1M events per
+minute to break the application.
+
+We now point this limitation in the Introduction, along with a reposition to
+target small networks, implying more control over participants:
+
+> We target small peer-to-peer networks, in which nodes are a only few hops
+> away from each other.
+> This ensures that events can span the whole network in a reasonable time to
+> preserve the real-time behavior of applications.
+> We also assume that peers are non-malicious in the sense that they do not
+> generate erroneous events.
+
+In Section "3.2.4. Middleware Summary", we now also explain how this limitation
+emerges in our API:
+
+> As detailed in Section 3.2.1, note that the API to disseminate an event in
+> the network is as simple as a variable assignment. Therefore, a malicious
+> peer could SPAM or inject erroneous events to break the application.
+> Again, this is a fundamental limitation that is also shared with the
+> alternatives discussed in Section 2.
+
 -------------------------------------------------------------------------------
 
 Regarding the middleware & protocol:
 
+### Comment A.TODO
+
 > While the API description is generally clear, some parts could be further
 > clarified, particularly regarding the handling of dynamic memory allocation
+> <...>
+
+In Section "3.2.4. Middleware Summary", we now also illustrate how to
+accommodate dynamic allocation over static snapshots:
+
+> Regarding the static limitation, we mentioned the possibility of a custom
+> allocator, which is illustrated as follows:
+
+```
+struct {
+    // FIXED REGION
+    int x,  y;   // position
+    int dx, dy;  // direction speed
+    // VARIABLE REGION
+    char heap[HEAP_SIZE];
+} G;
+
+T* obj = my_malloc(G.heap, <size>);
+<...>
+my_free(obj);
+```
+
+> The variable region is still technically static, but is dynamically reshaped
+> internally with a custom allocator `my\_alloc` & `my\_free`.
+
+### Comment A.TODO
+
+> <...>
 > and the interaction between the application and the middleware during time
 > travel.
+> <...>
+
+The application is frozen during time travel.
+
+In Section "3.2.3. The Time Machine", we now include the paragraph as follows:
+
+> The step delay is dynamically adjusted such that the whole time travel loop
+> takes at most 1 second to complete.
+> Note that during this period, the application is frozen, and new inputs are
+> enqueued for further processing.
+
+### Comment A.TODO
+
 > <...>
 > Suggestion: if possible please consider providing a more formal description
 > of the time synchronization protocol, including any guarantees or assumptions
 > about clock drift and network delays.
+
+Even though we consider that this suggestion is relevant, we believe that a
+formal description of the protocol with its implications requires a dedicated
+research on its own.
 
 ## Reviewer J
 
@@ -224,7 +293,7 @@ communication.
 Nevertheless, we no longer use this loosened notion of a broadcast.
 
 We now also emphasize this distinction from centralized solutions (which do
-rely on broadcasts) in the Related Work section:
+rely on broadcasts) in Section "2. Related Work":
 
 > Note how the central server is the only participant with knowledge about
 > clients, which never communicate directly.
@@ -237,7 +306,7 @@ rely on broadcasts) in the Related Work section:
 > other peers, but only indirectly via unstructured flooding.
 > <...>
 
-Section "3.2.1 Event Broadcasting" was renamed to "3.2.1 Event Dissemination"
+Section "3.2.1. Event Broadcasting" was renamed to "3.2.1. Event Dissemination"
 with the introduction rephrased as follows:
 
 > <...>, events *propagate* between peers with a timestamp scheduled to the
@@ -266,7 +335,7 @@ fail and any peer can offer full recovery.
 Therefore, an offline peer that (re)joins the network already holds past
 snapshots, and can fully recover from any direct neighbour.
 
-We added a remark at the beginning of Section 3 "The Middleware & Programming
+We added a remark at the beginning of Section "3. The Middleware & Programming
 API", when describing the middleware architecture with Figure 4:
 
 > Note that all peers execute the exactly same application and middleware, with
@@ -310,7 +379,7 @@ Regarding the network, the middleware only receives and forwards event packets
 among neighbours, in the same way typical flooding protocols behave.
 
 We now include a discussion about packet forwarding at the end of Section
-"3.2.1 Event Dissemination":
+"3.2.1. Event Dissemination":
 
 > Considering the peer-to-peer network as a whole, each event packet is
 > replicated to all neighbours of all peers.

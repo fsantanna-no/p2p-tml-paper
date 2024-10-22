@@ -160,6 +160,12 @@ Our main contribution is the design of a middleware to ensure that all peers
     (a) meet event deadlines,
     (b) advance in sync in real time, and
     (c) can leave and join the network and remain symmetric.
+We target small peer-to-peer networks, in which nodes are a only few hops away
+from each other.
+This ensures that events can span the whole network in a reasonable time to
+preserve the real-time behavior of applications.
+We also assume that peers are non-malicious in the sense that they do not
+generate erroneous events.
 
 We perform simulations with over 20 peers in a 5-hop mixed topology with cycles
 and straight lines.
@@ -895,7 +901,12 @@ from the snapshot to the desired tick \lin{5--7}.
 We also exhibit each step with a small \code{ms} delay \lin{8--9} so that users
 experience smooth time transitions.
 
-\subsubsection{Summary}
+The step delay is dynamically adjusted such that the whole time travel loop
+takes at most 1 second to complete.
+Note that during this period, the application is frozen, and new inputs are
+enqueued for further processing.
+
+\subsubsection{Middleware Summary}
 \label{sec.tml.middleware.summary}
 
 This section provided an overview of the middleware implementation to answer
@@ -909,14 +920,47 @@ how it ensures the desired properties in concrete terms as follows:
         receiving the full event history
         (Section~\ref{sec.tml.middleware.events}).
 
-\subsection{Middleware Limitations}
-\label{sec.tml.limitations}
+As discussed in Section~\ref{sec.tml.api}, the middleware imposes some
+programming restrictions, which are discussed as follows:
 
-As discussed in Section~\ref{sec.tml.api}
-
-unique identifier in a contiguous range.
-%Therefore, this is not a severe limitation, and a separate mechanism could be
-%used for assignments, with few modifications to the core of the middleware.
+\begin{itemize}
+%
+\item \textbf{Contiguous unique identifiers:}
+We assume that peers have unique identifiers in a contiguous range, which
+allows us to hold the peers database in a vector.
+Nevertheless, it is possible to generate UUIDs based local information
+only~\cite{p2p.id}, and to use a hash table as database instead.
+%
+\item \textbf{Deterministic API:}
+Since simulations must be equally reproduced in all peers, non-deterministic
+APIs are forbidden.
+This is a fundamental limitation that cannot be easily overcame.
+Note that the alternatives discussed in Section~\ref{sec.related} either impose
+the same limitation~\cite{croquet,gals}, or can be even more restrictive
+allowing only CRDTs~\cite{crdts}.
+%
+\item \textbf{Non-malicious peers:}
+As detailed in Section~\ref{sec.tml.api.cb_evt}, note that the API to
+disseminate an event in the network is as simple as a variable assignment.
+Therefore, a malicious peer could SPAM or inject erroneous events to break the
+application.
+Again, this is a fundamental limitation that is also shared with the
+alternatives discussed in Section~\ref{sec.related}.
+%
+\item \textbf{Static memory footprint:}
+The middleware takes periodic snapshots of the whole application state in order
+to optimize time machine simulations and resynchronize peers.
+This mechanism imposes two challenges:
+first, the snapshot must be small and determined, which implies a contiguous
+static region.
+second, the history of snapshots must be stored in all peers.
+Currently, we allocate periodic snapshots assuming that the memory does not
+deplete until the application terminates.
+Alternative policies could favor recent snapshots or simply impose a limit that
+reject clients that are too late.
+Regarding the static limitation, we mentioned the possibility of a custom
+allocator, which is illustrated as follows:
+\end{itemize}
 
 {\footnotesize
 \begin{verbatim}
@@ -934,20 +978,8 @@ my_free(obj);
 \end{verbatim}
 }
 
-struct {
-int x, y;
-int dx, dy;
-} G;
-
-- snapshots
-- memory alloc
-- fixed ids
-- network real
-- deterministic
-Developers must also restrict themselves to deterministic and stateless calls
-only, such that execution can be equally reproduced in all nodes according to
-the shared timeline.
-
+The variable region is still technically static, but is dynamically reshaped
+internally with a custom allocator \code{my\_alloc} \& \code{my\_free}.
 
 %\newpage
 \section{Evaluation}
