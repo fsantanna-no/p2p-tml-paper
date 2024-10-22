@@ -7,7 +7,9 @@ We accommodate all clarifications and answers in a final version of the paper.
 To help the reviewers find the modifications of interest, we provide a link
 with a *diff* between the versions, as follows:
 
+```
 https://
+```
 
 Based on the overall comments, our focus on the final version was to improve
 the section on related work, and to make the limitations of our proposal more
@@ -17,70 +19,83 @@ For that matter, we expanded Section "2. Related Work" by splitting it in two
 subsections
     "2.1. Symmetric Distributed Applications" and
     "2.2. Software Time Machines".
-
 We also expanded Section "3.2.4. Middleware Summary" to discuss its
 limitations, and added a paragraph at the end of Section "4. Evaluation" with
 the same goal.
-As detailed next, we discuss and justify the following limitations: peer
-identifiers, deterministic API, static memory, snapshots footprint,
-non-malicious peers, and network size.
 
 We also address each individual comment from all reviewers as follows...
-
--------------------------------------------------------------------------------
-
-EVALUATION
-
-- target small P2P networks
-    - examples / topology extrapolate the target
-- The topology has an average of 5 hops between peers
-    - ja é bastante radical
-- The experiments take around 40 hours to complete.
-- 40s online and 20s offline in the average, including peers 9-11 in the middle of the network.
+(Some comments might be reordered.)
 
 -------------------------------------------------------------------------------
 
 ## Reviewer A
 
-Regarding the experimental evaluation:
-
-> <...>
-> However, the experimental evaluation could be more extensive and rigorous.
-> <...>
-> The proposed approach is technically sound and the experimental results are
-> promising.
-> <...>
-> b) The experimental evaluation could be more extensive, including more
-> diverse scenarios and a comparison with existing approaches
-> <...>
-> The evaluation uses a fixed network topology. How would the middleware's
-> performance be affected in scenarios with highly dynamic topologies, where
-> peers frequently join, leave, or experience intermittent connectivity?
-> Have you considered any mechanisms to adapt to such changes?
-> <...>
-> The evaluation focuses on simulations with up to 21 peers. How do you
-> envision the middleware scaling to much larger networks, and what challenges
-> might arise in real-world deployments with potentially hundreds or thousands
-> of peers?
-
--------------------------------------------------------------------------------
-
 Regarding the section on related work:
+
+### Comment A.1
 
 > a) The related work section could be expanded to include more recent work on
 > peer-to-peer systems and distributed consensus algorithms;
+
+Besides the structural modifications, we now also refer to the following works:
+
+- [2022] "An experiment in live collaborative programming on the croquet shared
+   experience platform"
+    - Yoshiki Ohshima, ..., David A. Smith
+    - The last author is the first author of the original Croquet paper from
+      2005.
+    - They reimplement the original Croquet in JavaScript to run in modern
+      computers. In their Section 2, they describe the network architecture
+      that we discuss in our Figure 2.
+    - They also refer to CRDTs and derivatives as the most recent alternative
+      with respect to real-time collaborative protocols (they cite the same
+      papers we do).
+- [2023] "Collaborative Live Modelling by Language-Agnostic Versioning"
+    - Joeri Exelmans, ..., Hans Vangheluwe
+    - This work uses the term "synchronous collaboration"
+
+Most literature on distributed consensus algorithms focus on fault tolerance
+(Raft/Paxos/SMR/PBFT), but not on real-time symmetric behavior.
 
 -------------------------------------------------------------------------------
 
 Regarding the limitations:
 
-### Comment A.TODO
+### Comment A.2
 
 > <...>
 > c) The paper could discuss the limitations of the proposed approach and
 > potential future work.
 
-### Comment A.TODO
+We now discuss the limitations of our work as follows...
+
+- 1. Introduction
+
+> We target small peer-to-peer networks, in which nodes are a only few hops
+> away from each other. This ensures that events can span the whole network in
+> a reasonable time to preserve the real-time behavior of applications. We also
+> assume that peers are non-malicious in the sense that they do not generate
+> erroneous events.
+
+- 3.2.1. Event Dissemination:
+
+> Considering the peer-to-peer network as a whole, each event packet is
+> replicated to all neighbours of all peers. This results in a theoretical
+> limit of quadratic messages if all peers are connected to all peers. In
+> contrast, as discussed in Section~\ref{sec.related.sym}, a centralized
+> solution only requires a packet to be sent to a server, which then broadcasts
+> it to all clients.
+
+- 3.2.4. Middleware Summary
+
+> Contiguous unique identifiers:
+> Deterministic API:
+> Non-malicious peers:
+> Static memory footprint:
+
+(Details in the paper or link above.)
+
+### Comment A.3
 
 > <...>
 > The paper assumes non-malicious peers. What security measures or
@@ -116,7 +131,7 @@ emerges in our API:
 
 Regarding the middleware & protocol:
 
-### Comment A.TODO
+### Comment A.4
 
 > While the API description is generally clear, some parts could be further
 > clarified, particularly regarding the handling of dynamic memory allocation
@@ -145,7 +160,7 @@ my_free(obj);
 > The variable region is still technically static, but is dynamically reshaped
 > internally with a custom allocator `my\_alloc` & `my\_free`.
 
-### Comment A.TODO
+### Comment A.5
 
 > <...>
 > and the interaction between the application and the middleware during time
@@ -161,7 +176,7 @@ In Section "3.2.3. The Time Machine", we now include the paragraph as follows:
 > Note that during this period, the application is frozen, and new inputs are
 > enqueued for further processing.
 
-### Comment A.TODO
+### Comment A.6
 
 > <...>
 > Suggestion: if possible please consider providing a more formal description
@@ -171,6 +186,53 @@ In Section "3.2.3. The Time Machine", we now include the paragraph as follows:
 Even though we consider that this suggestion is relevant, we believe that a
 formal description of the protocol with its implications requires a dedicated
 research on its own.
+
+-------------------------------------------------------------------------------
+
+Regarding the experimental evaluation:
+
+### Comment A.7
+
+> <...>
+> However, the experimental evaluation could be more extensive and rigorous.
+> <...>
+> The proposed approach is technically sound and the experimental results are
+> promising.
+> <...>
+> b) The experimental evaluation could be more extensive, including more
+> diverse scenarios and a comparison with existing approaches
+
+> <...>
+> The evaluation uses a fixed network topology. How would the middleware's
+> performance be affected in scenarios with highly dynamic topologies, where
+> peers frequently join, leave, or experience intermittent connectivity?
+> Have you considered any mechanisms to adapt to such changes?
+
+Even though the network topology is fixed, it includes three typical variations
+of straight bus lines, rings, and connected topologies.
+They all coexist in the same deployment with peers leaving and joining the
+network.
+In item "(c) Correctness of unstable peers", we also make all 21 nodes to
+switch between online and offline for the same amount of time, including the
+peers in the middle of the network.
+This periodically creates full partitions in the peer-to-peer network, making
+the two opposites incommunicable for a considerable period of time.
+
+> <...>
+> The evaluation focuses on simulations with up to 21 peers. How do you
+> envision the middleware scaling to much larger networks, and what challenges
+> might arise in real-world deployments with potentially hundreds or thousands
+> of peers?
+
+We now position the scope of our work to small peer-to-peer networks only:
+
+> We target small peer-to-peer networks, in which nodes are a only few hops
+> away from each other. This ensures that events can span the whole network in
+> a reasonable time to preserve the real-time behavior of applications.
+
+As suggested in this paragraph, our design is not appropriate for too many
+hops, since each hop increases the event latency, which harms real-time
+behavior.
 
 ## Reviewer J
 
@@ -310,7 +372,7 @@ Section "3.2.1. Event Broadcasting" was renamed to "3.2.1. Event Dissemination"
 with the introduction rephrased as follows:
 
 > <...>, events *propagate* between peers with a timestamp scheduled to the
-> future with an extra delta ∆ such that all peers are able to apply them in
+> future with an extra delta such that all peers are able to apply them in
 > sync. To prevent *dissemination* cycles, each peer <...>
 
 To conclude, there are no full broadcasts in the protocol.
@@ -362,9 +424,6 @@ We use Linux's NetEm to emulate network latency, but do not consider other
 network challenges.
 That being said, latency is the only network dependent parameter that we
 evaluate.
-
-We 
-
 
 ### Comment J.11
 
