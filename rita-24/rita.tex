@@ -185,13 +185,6 @@ event deadlines with the desired performance.
 As an example, in a scenario of 25 events per minute with a network latency of
 $50ms$, the peers need to roll back only $3\%$ of the time.
 
-Limitations, ...
-Conclusion/Discussion/Lmitations, what happens if....
-- security, other works also have the same limitation
-    - SPAM/DoS, invalid data
-    - P2P doesnt imply non-permissioned (see paxos/etc)
-- memory allocator
-
 In Section~\ref{sec.related}, we revisit existing solutions for symmetric
 distributed applications and software time machines.
 In Section~\ref{sec.tml}, we detail the architecture of our middleware, its
@@ -348,6 +341,16 @@ forwards execution until it catches real-time behavior again.
 %
 Like Croquet and GALS, peers compute events in sequence using deterministic and
 stateless calls only.
+
+Finally, note that classical distributed consensus mechanisms focus on fault
+tolerance~\cite{lamport}, but not on real-time symmetric behavior.
+These algorithms typically rely on leaders~\cite{consensus.paxos.raft}, which
+require an election period that does not cope with our symmetric real-time
+requirements.
+In this sense, these algorithms could be considered to decentralize servers in
+Croquet or GALS, but not symmetric peers with high churn rates, as we propose.
+In contrast, our proposal requires a time machine to reapply reordered
+operations, since we cannot guarantee strong consistency~\cite{p2p.sec}.
 
 \subsection{Software Time Machines}
 \label{sec.related.time}
@@ -1184,8 +1187,44 @@ $5evt/min$).
 The color patterns in the table provide the necessary information to confront
 an application with its feasibility or desired performance.
 
-%\section{Application}
-%\label{sec.app}
+Considering the metrics we evaluate, we now compare our work with the existing
+solutions we discuss in Section~\ref{sec.related.sym}:
+
+\textbf{(a) Recurrence of time travels:}
+In Croquet, the centralized reflector issues periodic ticks, which represent
+the only authority over time.
+On the one hand, clients never need to travel back in time, but on the other
+hand, the reflector represents a single point of failure.
+%
+GALS imposes the same tradeoffs, relying on a central server to provide a
+single authority over time.
+%
+CRDT operations can be applied in any order, which also excludes time travels
+entirely.
+However, the notion of a single timetime cannot exist, which precludes
+bit-identical behavior across peers.
+
+\textbf{(b) Real-time pace of peers:}
+Croquet estipulates a global tick period which all clients must comply.
+However, clients with poor connections experience constant freezes and cannot
+advance in real time.
+%
+GALS supports independent timelines for clients, but at the cost of applying
+events with a greater delay.
+%
+With CRDTs, although peers advance independently, the notion of a shared
+real-time timeline does not exist.
+
+\textbf{(c) Correctness of unstable peers:}
+Since clients are connected directly with the server, Croquet and GALS have no
+issues with unstable clients.
+When reconnecting, a client just needs to synchronize pending events from the
+server and apply them in order.
+However, as discussed before, the server represents a single point of failure.
+%
+CRDTs are also immunte to unstable peers, since peers just need to synchronize
+events and apply them in any order, but missing the notion of real-time
+behavior.
 
 \section{Conclusion}
 \label{sec.conclusion}

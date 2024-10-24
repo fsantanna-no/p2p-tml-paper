@@ -34,10 +34,32 @@ Regarding the section on related work:
 
 ### Comment A.1
 
-> a) The related work section could be expanded to include more recent work on
+> The related work section could be expanded to include more recent work on
 > peer-to-peer systems and distributed consensus algorithms;
 
-Besides the structural modifications, we now also refer to the following works:
+We now expanded the end of Section "2.1 Symmetric Distributed Applications" to
+put our work into the perspective of classical distributed consensus
+algorithms:
+
+> Finally, note that classical distributed consensus mechanisms focus on fault
+> tolerance [8], but not on real-time symmetric behavior. These algorithms
+> typically rely on leaders [9], which require an election period that does not
+> cope with our symmetric real-time requirements. In this sense, these
+> algorithms could be considered to decentralize servers in Croquet or GALS,
+> but not symmetric peers with high churn rates, as we propose. In contrast,
+> our proposal requires a time machine to reapply reordered operations, since
+> we cannot guarantee strong consistency [10].
+
+We now include references on consensus mechanisms:
+
+- [2019] "Concurrency: the works of Leslie Lamport"
+    - Leslie Lamport, Robert Shostak, and Marshall Pease
+- [2020] "Paxos vs Raft: Have we reached consensus on distributed consensus?"
+    - Heidi Howard, Richard Mortier
+- [2017] "Verifying strong eventual consistency in distributed systems"
+    - Victor Gomes, ..., Alastair Beresford
+
+We also included a new reference for Croquet that has been published recently:
 
 - [2022] "An experiment in live collaborative programming on the croquet shared
    experience platform"
@@ -48,14 +70,8 @@ Besides the structural modifications, we now also refer to the following works:
       computers. In their Section 2, they describe the network architecture
       that we discuss in our Figure 2.
     - They also refer to CRDTs and derivatives as the most recent alternative
-      with respect to real-time collaborative protocols (they cite the same
-      papers we do).
-- [2023] "Collaborative Live Modelling by Language-Agnostic Versioning"
-    - Joeri Exelmans, ..., Hans Vangheluwe
-    - This work uses the term "synchronous collaboration"
-
-Most literature on distributed consensus algorithms focus on fault tolerance
-(Raft/Paxos/SMR/PBFT), but not on real-time symmetric behavior.
+      with respect to real-time collaborative protocols (they roughly cite the
+      same papers we do).
 
 -------------------------------------------------------------------------------
 
@@ -64,7 +80,7 @@ Regarding the limitations:
 ### Comment A.2
 
 > <...>
-> c) The paper could discuss the limitations of the proposed approach and
+> The paper could discuss the limitations of the proposed approach and
 > potential future work.
 
 We now discuss the limitations of our work as follows...
@@ -194,13 +210,15 @@ Regarding the experimental evaluation:
 ### Comment A.7
 
 > <...>
-> However, the experimental evaluation could be more extensive and rigorous.
-> <...>
-> The proposed approach is technically sound and the experimental results are
-> promising.
-> <...>
-> b) The experimental evaluation could be more extensive, including more
-> diverse scenarios and a comparison with existing approaches
+> The experimental evaluation could be more extensive, including more
+> diverse scenarios *(see A.8)* and a comparison with existing approaches
+
+At the end of Section "4. Evaluation", we compare the existing approaches
+discussed in Section "2.1. Symmetric Distributed Applications" with respect to
+the three aspects that we consider in our evaluation (i.e., recurrence of time
+travels, real-time pace of peers, correctness of unstable peers):
+
+### Comment A.8
 
 > <...>
 > The evaluation uses a fixed network topology. How would the middleware's
@@ -217,6 +235,8 @@ switch between online and offline for the same amount of time, including the
 peers in the middle of the network.
 This periodically creates full partitions in the peer-to-peer network, making
 the two opposites incommunicable for a considerable period of time.
+
+### Comment A.9
 
 > <...>
 > The evaluation focuses on simulations with up to 21 peers. How do you
