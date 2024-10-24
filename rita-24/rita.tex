@@ -160,7 +160,7 @@ Our main contribution is the design of a middleware to ensure that all peers
     (a) meet event deadlines,
     (b) advance in sync in real time, and
     (c) can leave and join the network and remain symmetric.
-We target small peer-to-peer networks, in which nodes are a only few hops away
+We target small peer-to-peer networks, in which nodes are only a few hops away
 from each other.
 This ensures that events can span the whole network in a reasonable time to
 preserve the real-time behavior of applications.
@@ -348,7 +348,8 @@ These algorithms typically rely on leaders~\cite{consensus.paxos.raft}, which
 require an election period that does not cope with our symmetric real-time
 requirements.
 In this sense, these algorithms could be considered to decentralize servers in
-Croquet or GALS, but not symmetric peers with high churn rates, as we propose.
+Croquet or GALS, but not to decentralize symmetric peers with high churn rates,
+as we propose in this work.
 In contrast, our proposal requires a time machine to reapply reordered
 operations, since we cannot guarantee strong consistency~\cite{p2p.sec}.
 

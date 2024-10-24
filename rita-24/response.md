@@ -41,14 +41,15 @@ We now expanded the end of Section "2.1 Symmetric Distributed Applications" to
 put our work into the perspective of classical distributed consensus
 algorithms:
 
-> Finally, note that classical distributed consensus mechanisms focus on fault
-> tolerance [8], but not on real-time symmetric behavior. These algorithms
-> typically rely on leaders [9], which require an election period that does not
-> cope with our symmetric real-time requirements. In this sense, these
-> algorithms could be considered to decentralize servers in Croquet or GALS,
-> but not symmetric peers with high churn rates, as we propose. In contrast,
-> our proposal requires a time machine to reapply reordered operations, since
-> we cannot guarantee strong consistency [10].
+> "Finally, note that classical distributed consensus mechanisms focus on
+> fault tolerance [8], but not on real-time symmetric behavior. These
+> algorithms typically rely on leaders [9], which require an election period
+> that does not cope with our symmetric real-time requirements. In this sense,
+> these algorithms could be considered to decentralize servers in Croquet or
+> GALS, but not to decentralize symmetric peers with high churn rates, as we
+> propose in this work. In contrast, our proposal requires a time machine to
+> reapply reordered operations, since we cannot guarantee strong consistency
+> [10]."
 
 We now include references on consensus mechanisms:
 
@@ -85,31 +86,28 @@ Regarding the limitations:
 
 We now discuss the limitations of our work as follows...
 
-- 1. Introduction
+- 1. Introduction:
 
-> We target small peer-to-peer networks, in which nodes are a only few hops
+> "We target small peer-to-peer networks, in which nodes are only a few hops
 > away from each other. This ensures that events can span the whole network in
 > a reasonable time to preserve the real-time behavior of applications. We also
 > assume that peers are non-malicious in the sense that they do not generate
-> erroneous events.
+> erroneous events."
 
 - 3.2.1. Event Dissemination:
 
-> Considering the peer-to-peer network as a whole, each event packet is
+> "Considering the peer-to-peer network as a whole, each event packet is
 > replicated to all neighbours of all peers. This results in a theoretical
 > limit of quadratic messages if all peers are connected to all peers. In
-> contrast, as discussed in Section~\ref{sec.related.sym}, a centralized
-> solution only requires a packet to be sent to a server, which then broadcasts
-> it to all clients.
+> contrast, as discussed in Section 2.1, a centralized solution only requires a
+> packet to be sent to a server, which then broadcasts it to all clients."
 
-- 3.2.4. Middleware Summary
+- 3.2.4. Middleware Summary:
 
-> Contiguous unique identifiers:
-> Deterministic API:
-> Non-malicious peers:
-> Static memory footprint:
-
-(Details in the paper or link above.)
+We discuss the middleware limiations as follows:
+contiguous unique identifiers, deterministic API, non-malicious peers, and
+static memory footprint.
+The text with details are in the paper or link above.
 
 ### Comment A.3
 
@@ -127,21 +125,21 @@ minute to break the application.
 We now point this limitation in the Introduction, along with a reposition to
 target small networks, implying more control over participants:
 
-> We target small peer-to-peer networks, in which nodes are a only few hops
+> "We target small peer-to-peer networks, in which nodes are a only few hops
 > away from each other.
 > This ensures that events can span the whole network in a reasonable time to
 > preserve the real-time behavior of applications.
 > We also assume that peers are non-malicious in the sense that they do not
-> generate erroneous events.
+> generate erroneous events."
 
 In Section "3.2.4. Middleware Summary", we now also explain how this limitation
 emerges in our API:
 
-> As detailed in Section 3.2.1, note that the API to disseminate an event in
+> "As detailed in Section 3.2.1, note that the API to disseminate an event in
 > the network is as simple as a variable assignment. Therefore, a malicious
 > peer could SPAM or inject erroneous events to break the application.
 > Again, this is a fundamental limitation that is also shared with the
-> alternatives discussed in Section 2.
+> alternatives discussed in Section 2."
 
 -------------------------------------------------------------------------------
 
@@ -156,8 +154,8 @@ Regarding the middleware & protocol:
 In Section "3.2.4. Middleware Summary", we now also illustrate how to
 accommodate dynamic allocation over static snapshots:
 
-> Regarding the static limitation, we mentioned the possibility of a custom
-> allocator, which is illustrated as follows:
+> "Regarding the static limitation, we mentioned the possibility of a custom
+> allocator, which is illustrated as follows:"
 
 ```
 struct {
@@ -173,8 +171,8 @@ T* obj = my_malloc(G.heap, <size>);
 my_free(obj);
 ```
 
-> The variable region is still technically static, but is dynamically reshaped
-> internally with a custom allocator `my\_alloc` & `my\_free`.
+> "The variable region is still technically static, but is dynamically reshaped
+> internally with a custom allocator `my\_alloc` & `my\_free`."
 
 ### Comment A.5
 
@@ -187,10 +185,10 @@ The application is frozen during time travel.
 
 In Section "3.2.3. The Time Machine", we now include the paragraph as follows:
 
-> The step delay is dynamically adjusted such that the whole time travel loop
+> "The step delay is dynamically adjusted such that the whole time travel loop
 > takes at most 1 second to complete.
 > Note that during this period, the application is frozen, and new inputs are
-> enqueued for further processing.
+> enqueued for further processing."
 
 ### Comment A.6
 
@@ -246,9 +244,9 @@ the two opposites incommunicable for a considerable period of time.
 
 We now position the scope of our work to small peer-to-peer networks only:
 
-> We target small peer-to-peer networks, in which nodes are a only few hops
+> "We target small peer-to-peer networks, in which nodes are a only few hops
 > away from each other. This ensures that events can span the whole network in
-> a reasonable time to preserve the real-time behavior of applications.
+> a reasonable time to preserve the real-time behavior of applications."
 
 As suggested in this paragraph, our design is not appropriate for too many
 hops, since each hop increases the event latency, which harms real-time
@@ -284,20 +282,20 @@ As suggested, we split Section 2 in two:
 Now, to make clear that we have only two subsections, we briefly introduce 2.1
 and 2.2 with paragraph at the beginning of 2 (before 2.1 and 2.2):
 
-> This section first revisits existing solutions for symmetric distributed
+> "This section first revisits existing solutions for symmetric distributed
 > applications, namely Croquet [2], GALS [1], and CRDTs [3]. Then, we discuss
 > software time machines that are built for either local or networked
-> applications.
+> applications."
 
 We now link the three aspects (a,b,c) with the selected works at the beginning
 of 2.1:
 
-> Even though existing solutions aim to provide symmetric behavior for
+> "Even though existing solutions aim to provide symmetric behavior for
 > distributed applications, they diverge in three key aspects as follows:
 > a. How the network is organized.
 > b. How global time is determined.
 > c. How events are propagated and applied.
-> Figure 1 compares three selected works regarding these aspects.
+> Figure 1 compares three selected works regarding these aspects."
 > <...>
 
 ### Comment J.3
@@ -319,10 +317,10 @@ To guide our discussion, we explain how the text is organized at the beginning
 of the section:
 
 > <...>
-> Figure 1 compares three selected works regarding these aspects. We now
+> "Figure 1 compares three selected works regarding these aspects. We now
 > discuss these works with respect to the three aspects, while comparing with
 > our approach. At the end of this section, we also provide initial details on
-> how our middleware works.
+> how our middleware works."
 
 ### Comment J.5
 
@@ -364,10 +362,10 @@ Now, every occurrence of "broadcast" was substituted by "trigger" or
 
 As was described in the Introduction,
 
-> Peers in the application form a dynamic network graph and communicate only
+> "Peers in the application form a dynamic network graph and communicate only
 > with direct neighbours, as in typical unstructured peer-to-peer networks.
 > Events are flooded in the graph and are triggered locally with a small delay
-> to compensate the network latency.
+> to compensate the network latency."
 
 What we meant is that the same effect of a broadcast is reached after the
 events are flooded in the network, but only through direct neighbour
@@ -377,23 +375,23 @@ Nevertheless, we no longer use this loosened notion of a broadcast.
 We now also emphasize this distinction from centralized solutions (which do
 rely on broadcasts) in Section "2. Related Work":
 
-> Note how the central server is the only participant with knowledge about
+> "Note how the central server is the only participant with knowledge about
 > clients, which never communicate directly.
 > This implies that the server must never fail, and also that periodic full
 > broadcasts are the only possibility of spanning the whole network.
 > In this work, we argue that in a peer-to-peer alternative any node can fail,
-> and that broadcasts can be replaced by optimistic flooding.
+> and that broadcasts can be replaced by optimistic flooding."
 > <...>
-> Note, that it is not necessary that all peers communicate directly with all
-> other peers, but only indirectly via unstructured flooding.
+> "Note, that it is not necessary that all peers communicate directly with all
+> other peers, but only indirectly via unstructured flooding."
 > <...>
 
 Section "3.2.1. Event Broadcasting" was renamed to "3.2.1. Event Dissemination"
 with the introduction rephrased as follows:
 
-> <...>, events *propagate* between peers with a timestamp scheduled to the
+> <...>, "events *propagate* between peers with a timestamp scheduled to the
 > future with an extra delta such that all peers are able to apply them in
-> sync. To prevent *dissemination* cycles, each peer <...>
+> sync. To prevent *dissemination* cycles, each peer" <...>
 
 To conclude, there are no full broadcasts in the protocol.
 Regardless of the network size, peers only communicate with direct neighbours.
@@ -420,17 +418,17 @@ snapshots, and can fully recover from any direct neighbour.
 We added a remark at the beginning of Section "3. The Middleware & Programming
 API", when describing the middleware architecture with Figure 4:
 
-> Note that all peers execute the exactly same application and middleware, with
-> no differences with respect to their roles and physical resources.
+> "Note that all peers execute the exactly same application and middleware,
+> with no differences with respect to their roles and physical resources."
 
 We now also explicit that snapshots are replicated, further in the same
 section:
 
-> As an optimization, the middleware takes periodic snapshots locally *at all
-> peers* to avoid full simulation.
+> "As an optimization, the middleware takes periodic snapshots locally *at all
+> peers* to avoid full simulation."
 > <...>
-> In addition, a peer that rejoins the network recovers from a past snapshot it
-> already holds, thus avoiding full simulation.
+> "In addition, a peer that rejoins the network recovers from a past snapshot
+> it already holds, thus avoiding full simulation."
 
 ### Comment J.10
 
@@ -460,12 +458,12 @@ among neighbours, in the same way typical flooding protocols behave.
 We now include a discussion about packet forwarding at the end of Section
 "3.2.1. Event Dissemination":
 
-> Considering the peer-to-peer network as a whole, each event packet is
+> "Considering the peer-to-peer network as a whole, each event packet is
 > replicated to all neighbours of all peers.
 > This results in a theoretical limit of quadratic messages if all peers are
 > connected to all peers.
 > In contrast, as discussed in Section 2, a centralized solution only requires
-> a packet to be sent to a server, which then broadcasts it to all clients.
+> a packet to be sent to a server, which then broadcasts it to all clients."
 
 -------------------------------------------------------------------------------
 
