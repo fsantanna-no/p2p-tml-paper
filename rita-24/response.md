@@ -8,7 +8,7 @@ To help the reviewers find the modifications of interest, we provide a link
 with a *diff* between the versions, as follows:
 
 ```
-https://
+https://github.com/fsantanna-no/p2p-tml-paper/compare/690245...main
 ```
 
 Based on the overall comments, our focus on the final version was to improve
