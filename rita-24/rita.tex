@@ -150,7 +150,8 @@ nodes and determine a shared timeline.
 In this work, we propose \emph{symmetric peer-to-peer applications}, which
 do not rely on central servers for coordination.
 Peers in the application form a dynamic network graph and communicate only
-with direct neighbours, as in typical unstructured peer-to-peer networks.
+with direct neighbours, as in typical unstructured peer-to-peer
+networks~\cite{p2p.survey}.
 Events are flooded in the graph and are triggered locally with a small delay
 to compensate the network latency.
 To deal with events received out of order or too late, a time machine can
@@ -267,7 +268,7 @@ network (a), in which nodes advance in sync (b), and in which event outcomes
 depend on the central server to be online (c).
 %
 Note how the central server is the only participant with knowledge about
-clients, which never communicate directly.
+clients, which never communicate directly among themselves.
 This implies that the server must never fail, and also that periodic full
 broadcasts are the only possibility of spanning the whole network.
 In this work, we argue that in a peer-to-peer alternative any node can fail,
@@ -439,8 +440,6 @@ is around 500 lines of code.
 We guide our discussion through the didactic example of Figure~\ref{fig.move},
 in which multiple users use the arrow keys to control the direction of a
 moving rectangle.
-The six instances are connected in a peer-to-peer network, such that most
-peers can only communicate indirectly to each other.
 %
 The application is symmetric in the sense that if any user presses a key, a
 corresponding event propagates in the network, and all peers apply it
@@ -470,8 +469,18 @@ which synchronizes them with a timestamp with a $\Delta$ delay scheduled to the
 future, such that all peers can satisfy.
 The middleware controls the execution of the application by issuing ticks and
 synchronized events.
+
+The peers form a dynamic unstructured peer-to-peer network~\cite{p2p.survey},
+and communicate only indirectly to each other.
+Events are flooded in the network graph via gossiping, i.e.: when a peer
+generates an event, it communicates to its neighbours, which communicate to
+their neighbours, and so on.
 Note that all peers execute the exactly same application and middleware, with
 no differences with respect to their roles and physical resources.
+Therefore, we can describe our peer-to-peer network as follows:
+    (a) all peers have the same role and run the same software;
+    (b) any peer can join or leave at any time;
+    (c) events are only communicated with direct neighbours.
 
 The main job of the middleware is to deal with the uncertainties of the
 network in order to preserve the symmetric behavior across peers.
@@ -783,7 +792,7 @@ struct {
 
 Considering the peer-to-peer network as a whole, each event packet is
 replicated to all neighbours of all peers.
-This results in a theoretical limit of quadratic messages if all peers are
+This results in a theoretical limit of quadratic messages if all peers were
 connected to all peers.
 In contrast, as discussed in Section~\ref{sec.related.sym}, a centralized
 solution only requires a packet to be sent to a server, which then broadcasts
@@ -983,7 +992,7 @@ my_free(obj);
 }
 
 The variable region is still technically static, but is dynamically reshaped
-internally with a custom allocator \code{my\_alloc} \& \code{my\_free}.
+internally with the custom allocator \code{my\_alloc} \& \code{my\_free}.
 
 %\newpage
 \section{Evaluation}
@@ -1148,19 +1157,6 @@ Considering all scenarios, the average is $1.3$ seconds of recovering time,
 with no significant variance.
 Therefore, we also omit the resulting table (akin to Figure~\ref{fig.baks}).
 
-\begin{comment}
-$ vi test.c: // #define TEST_OFFLINE
-$ sudo ./test-ana.sh 2>&1 | tee all.log
-$ ./test-sheet.sh > sheet.log
-$ ./test-sheet-2.sh > sheet-2.log
-$ lua5.3 test-sheet-2.lua sheet-2.log > /tmp/x
-$ gedit /tmp/x
-
-$ vi test.c: #define TEST_OFFLINE
-$ sudo ./test2-ana.sh 2>&1 | tee all2.log
-$ lua5.3 test2-sheet.lua
-\end{comment}
-
 Our results show that goals (b) and (c) are met in all scenarios consistently,
 and we consider them nearly optimal:
 Regardless of the network latency, event rate, and delay multiplier,
@@ -1189,10 +1185,10 @@ The color patterns in the table provide the necessary information to confront
 an application with its feasibility or desired performance.
 
 Considering the metrics we evaluate, we now compare our work with the existing
-solutions we discuss in Section~\ref{sec.related.sym}:
+solutions of Section~\ref{sec.related.sym}:
 
 \textbf{(a) Recurrence of time travels:}
-In Croquet, the centralized reflector issues periodic ticks, which represent
+In Croquet, the centralized reflector issues periodic ticks, which represents
 the only authority over time.
 On the one hand, clients never need to travel back in time, but on the other
 hand, the reflector represents a single point of failure.
@@ -1202,19 +1198,22 @@ single authority over time.
 %
 CRDT operations can be applied in any order, which also excludes time travels
 entirely.
-However, the notion of a single timetime cannot exist, which precludes
-bit-identical behavior across peers.
+However, the notion of a shared real-time timeline cannot exist, which
+precludes bit-identical behavior across peers.
 
 \textbf{(b) Real-time pace of peers:}
-Croquet estipulates a global tick period which all clients must comply.
+Croquet stipulates a global tick period which all clients must comply with.
 However, clients with poor connections experience constant freezes and cannot
 advance in real time.
+As a concrete example, a peer that experiences a latency of $500ms$, while the
+reflector issues ticks every $100ms$, will freeze for $400ms$, even if no
+events occur in the network.
 %
 GALS supports independent timelines for clients, but at the cost of applying
-events with a greater delay.
+events with a greater delay in comparison to Croquet.
 %
-With CRDTs, although peers advance independently, the notion of a shared
-real-time timeline does not exist.
+With CRDTs, although peers advance independently, the notion of real time does
+not exist.
 
 \textbf{(c) Correctness of unstable peers:}
 Since clients are connected directly with the server, Croquet and GALS have no
@@ -1223,8 +1222,8 @@ When reconnecting, a client just needs to synchronize pending events from the
 server and apply them in order.
 However, as discussed before, the server represents a single point of failure.
 %
-CRDTs are also immunte to unstable peers, since peers just need to synchronize
-events and apply them in any order, but missing the notion of real-time
+CRDTs are also immune to unstable peers, since peers just need to synchronize
+events and apply them in any order, but again missing the notion of real-time
 behavior.
 
 \section{Conclusion}

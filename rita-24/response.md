@@ -19,18 +19,16 @@ For that matter, we expanded Section "2. Related Work" by splitting it in two
 subsections
     "2.1. Symmetric Distributed Applications" and
     "2.2. Software Time Machines".
-We also expanded Section "3.2.4. Middleware Summary" to discuss its
-limitations, and added a paragraph at the end of Section "4. Evaluation" with
-the same goal.
+We also rewrote Section "3.2.4. Middleware Summary" to discuss its limitations.
 
-We also address each individual comment from all reviewers as follows...
+Next, we address each individual comment from all reviewers as follows...
 (Some comments might be reordered.)
 
 -------------------------------------------------------------------------------
 
 ## Reviewer A
 
-Regarding the section on related work:
+Regarding the section on related work (comment A.1):
 
 ### Comment A.1
 
@@ -51,7 +49,7 @@ algorithms:
 > reapply reordered operations, since we cannot guarantee strong consistency
 > [10]."
 
-We now include references on consensus mechanisms:
+We now include recent references on consensus mechanisms:
 
 - [2019] "Concurrency: the works of Leslie Lamport"
     - Leslie Lamport, Robert Shostak, and Marshall Pease
@@ -76,7 +74,7 @@ We also included a new reference for Croquet that has been published recently:
 
 -------------------------------------------------------------------------------
 
-Regarding the limitations:
+Regarding the limitations (comments A.2-A.3):
 
 ### Comment A.2
 
@@ -98,16 +96,16 @@ We now discuss the limitations of our work as follows...
 
 > "Considering the peer-to-peer network as a whole, each event packet is
 > replicated to all neighbours of all peers. This results in a theoretical
-> limit of quadratic messages if all peers are connected to all peers. In
+> limit of quadratic messages if all peers were connected to all peers. In
 > contrast, as discussed in Section 2.1, a centralized solution only requires a
 > packet to be sent to a server, which then broadcasts it to all clients."
 
 - 3.2.4. Middleware Summary:
 
-We discuss the middleware limiations as follows:
+We discuss the middleware limitaions as follows:
 contiguous unique identifiers, deterministic API, non-malicious peers, and
 static memory footprint.
-The text with details are in the paper or link above.
+The text is too long to fit here and can be found in the paper or link above.
 
 ### Comment A.3
 
@@ -143,7 +141,7 @@ emerges in our API:
 
 -------------------------------------------------------------------------------
 
-Regarding the middleware & protocol:
+Regarding the middleware & protocol (comments A.4-A.6):
 
 ### Comment A.4
 
@@ -172,7 +170,7 @@ my_free(obj);
 ```
 
 > "The variable region is still technically static, but is dynamically reshaped
-> internally with a custom allocator `my\_alloc` & `my\_free`."
+> internally with the custom allocator `my_alloc` & `my_free`."
 
 ### Comment A.5
 
@@ -199,11 +197,11 @@ In Section "3.2.3. The Time Machine", we now include the paragraph as follows:
 
 Even though we consider that this suggestion is relevant, we believe that a
 formal description of the protocol with its implications requires a dedicated
-research on its own.
+work on its own.
 
 -------------------------------------------------------------------------------
 
-Regarding the experimental evaluation:
+Regarding the experimental evaluation (comments A.7-A.9):
 
 ### Comment A.7
 
@@ -211,10 +209,11 @@ Regarding the experimental evaluation:
 > The experimental evaluation could be more extensive, including more
 > diverse scenarios *(see A.8)* and a comparison with existing approaches
 
-At the end of Section "4. Evaluation", we compare the existing approaches
+At the end of Section "4. Evaluation", we now compare the existing approaches
 discussed in Section "2.1. Symmetric Distributed Applications" with respect to
 the three aspects that we consider in our evaluation (i.e., recurrence of time
-travels, real-time pace of peers, correctness of unstable peers):
+travels, real-time pace of peers, correctness of unstable peers).
+The text is too long to fit here and can be found in the paper or link above.
 
 ### Comment A.8
 
@@ -225,14 +224,15 @@ travels, real-time pace of peers, correctness of unstable peers):
 > Have you considered any mechanisms to adapt to such changes?
 
 Even though the network topology is fixed, it includes three typical variations
-of straight bus lines, rings, and connected topologies.
+of (a) straight bus lines, (b) rings, and (c) connected topologies.
 They all coexist in the same deployment with peers leaving and joining the
 network.
-In item "(c) Correctness of unstable peers", we also make all 21 nodes to
-switch between online and offline for the same amount of time, including the
-peers in the middle of the network.
-This periodically creates full partitions in the peer-to-peer network, making
-the two opposites incommunicable for a considerable period of time.
+In item "(c) Correctness of unstable peers", we make all 21 nodes to switch
+between online and offline for the same amount of time, including the peers in
+the middle of the network.
+This churn rate of 50% periodically creates full partitions in the peer-to-peer
+network, making the two opposites incommunicable for a considerable amount of
+time.
 
 ### Comment A.9
 
@@ -264,7 +264,7 @@ Regarding the section on related work (comments J.1-J.5):
 > and this Work and (2) related works on time machines. It would be beneficial
 > to clearly delineate these two subsection, preferably with subtitles.
 
-As suggested, we split Section 2 in two:
+As suggested, we now split Section 2 in two:
 
 - 2.1 Symmetric Distributed Applications: discussion on the selected works,
     and comparison with our proposal.
@@ -280,7 +280,7 @@ As suggested, we split Section 2 in two:
 > selected works compared to the proposed solution.
 
 Now, to make clear that we have only two subsections, we briefly introduce 2.1
-and 2.2 with paragraph at the beginning of 2 (before 2.1 and 2.2):
+and 2.2 with a paragraph at the beginning of Section 2 (before 2.1 and 2.2):
 
 > "This section first revisits existing solutions for symmetric distributed
 > applications, namely Croquet [2], GALS [1], and CRDTs [3]. Then, we discuss
@@ -313,8 +313,8 @@ Done, as detailed in J.1 and J.2.
 > is brought out more clearly when discussed at the end of the related works to
 > show how all the gaps identified will be solved.
 
-To guide our discussion, we explain how the text is organized at the beginning
-of the section:
+To guide our discussion, we now explain how the text is organized at the
+beginning of Section 2.1:
 
 > <...>
 > "Figure 1 compares three selected works regarding these aspects. We now
@@ -338,6 +338,7 @@ we discuss
     (b) in which scenarios it appears,
     (c) what are the challenges to overcome, and
     (d) what are the common implementation techniques.
+The text is too long to fit here and can be found in the paper or link above.
 
 -------------------------------------------------------------------------------
 
@@ -350,6 +351,20 @@ J.7-J.11):
 > model/framework to give a clear picture to an expert reader and explain to a
 > lay reader the place of this middleware in the overall p2p application
 > model/framework. Has this been considered?
+
+We now include a paragraph at the beginning of Section "3. The Middleware &
+Programming API" describing the P2P framework or, in other words, what we
+exactly mean by P2P:
+
+> "The peers form a dynamic unstructured peer-to-peer network [3], and
+> communicate only indirectly to each other. Events are flooded in the network
+> graph via gossiping, i.e.: when a peer generates an event, it communicates to
+> its neighbours, which communicate to their neighbours, and so on. Note that
+> all peers execute the exactly same application and middleware, with no
+> differences with respect to their roles and physical resources. Therefore, we
+> can describe our peer-to-peer network as follows: (a) all peers have the same
+> role and run the same software; (b) any peer can join or leave at any time;
+> (c) events are only communicated with direct neighbours."
 
 ### Comment J.8
 
@@ -376,7 +391,7 @@ We now also emphasize this distinction from centralized solutions (which do
 rely on broadcasts) in Section "2. Related Work":
 
 > "Note how the central server is the only participant with knowledge about
-> clients, which never communicate directly.
+> clients, which never communicate directly among themselves.
 > This implies that the server must never fail, and also that periodic full
 > broadcasts are the only possibility of spanning the whole network.
 > In this work, we argue that in a peer-to-peer alternative any node can fail,
