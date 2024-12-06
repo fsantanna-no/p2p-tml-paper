@@ -62,7 +62,7 @@
 \PaperTitle{Symmetric Peer-to-Peer Applications}
 \ShortTitle{Symmetric Peer-to-Peer Applications}
 
-%\Titulo{Aplicações Peer-to-Peer Simétricas}
+\Titulo{Aplicações Peer-to-Peer Simétricas}
 
 \PaperVol{XX} % Volume 
 \PaperNum{X} % Number 
@@ -76,7 +76,7 @@
 
 \newcommand{\keywordname}{Keywords} % Defines the keywords heading name
 
-%\PalavrasChave{palavra1 --- palavra2 --- palavra3 --- palavra4} 
+\PalavrasChave{colaboração --- determinismo --- peer-to-peer --- máquina do tempo} 
 \Doi{http://dx.doi.org/10.22456/2175-2745.XXXX} % DOI
 \DateR{dd/mm/yyyy} % Received
 \DateA{dd/mm/yyyy} % Accepted
@@ -110,7 +110,31 @@ latency of 50ms, the peers need to roll back and resynchronize only 3\% of
 the time.
 }
 
-%\Resumo{\lipsum[1]~}
+\Resumo{
+Em aplicações de tempo real em rede, tais como documentos compartilhados, os
+usuários podem interagir remotamente e ainda obterem a mesma experiência, como
+se estivessem em uma única máquina.
+%
+Neste trabalho, nós propomos um middleware para \emph{aplicações peer-to-peer
+simétricas} nas quais instâncias descentralizadas podem disparar eventos
+assíncronos e ainda obterem comportamento idêntico.
+%
+Os pares podem entrar e sair da rede a qualquer momento.
+Os desenvoledores de aplicações devem aderir a uma API restritiva, que deve ser
+determinística, sem estados internos, e também com alocação prévia de memória.
+%
+O middleware é responsável por sincronizar os eventos em uma linha de tempo
+global e compartilhada em toda a rede.
+Além disso, com base em cópias da memória e simulação determinística, uma
+``máquina do tempo'' pode retroceder pares em conflito para ressincronizar o
+seu estado.
+%
+Nós mostramos que o middleware suporta aplicações com mais de 20 pares em uma
+topologia heterogênea e sob alta taxa de desconexões.
+Como exemplo, em uma simulação com 25 eventos por segundo em uma rede com
+latência de 50ms, os pares precisam retroceder e ressincronizar somente 3\% do
+tempo.
+}
 
 %----------------------------------------------------------------------------------------
 
@@ -119,7 +143,7 @@ the time.
 %\setcounter{page}{11}
 
 \flushbottom % Makes all text pages the same height
-%\maketitle % Print the title and abstract box
+\maketitle % Print the title and abstract box
 \thispagestyle{empty} % Removes page numbering from the first page
 %\tableofcontents % Print the contents section
 
@@ -241,9 +265,8 @@ distributed applications, they diverge in three key aspects as follows:
 
 \textbf{c.} How events are propagated and applied.
 
-Figure~\ref{fig.table} compares three selected works regarding these aspects.
-We now discuss these works with respect to the three aspects, while comparing
-with our approach.
+Figure~\ref{fig.table} compares three selected works regarding these aspects,
+which we discuss and contrast with our approach next.
 At the end of this section, we also provide initial details on how our
 middleware works.
 
@@ -466,12 +489,12 @@ The application itself is not aware of the network and has no direct access to
 other peers, which communicate transparently through the middleware.
 The application generates asynchronous events that go through the middleware,
 which synchronizes them with a timestamp with a $\Delta$ delay scheduled to the
-future, such that all peers can satisfy.
+future, such that all peers can (optimistically) satisfy.
 The middleware controls the execution of the application by issuing ticks and
 synchronized events.
 
 The peers form a dynamic unstructured peer-to-peer network~\cite{p2p.survey},
-and communicate only indirectly to each other.
+and communicate mostly indirectly to each other.
 Events are flooded in the network graph via gossiping, i.e.: when a peer
 generates an event, it communicates to its neighbours, which communicate to
 their neighbours, and so on.
@@ -934,7 +957,7 @@ how it ensures the desired properties in concrete terms as follows:
         (Section~\ref{sec.tml.middleware.events}).
 
 As discussed in Section~\ref{sec.tml.api}, the middleware imposes some
-programming restrictions, which are discussed as follows:
+restrictions, which are discussed as follows:
 
 \begin{itemize}
 %
@@ -965,7 +988,7 @@ The middleware takes periodic snapshots of the whole application state in order
 to optimize time machine simulations and resynchronize peers.
 This mechanism imposes two challenges:
 first, the snapshot must be small and determined, which implies a contiguous
-static region.
+static region;
 second, the history of snapshots must be stored in all peers.
 Currently, we allocate periodic snapshots assuming that the memory does not
 deplete until the application terminates.
@@ -1178,7 +1201,7 @@ middleware.
 %
 For the lowest possible delay (column $1x$), we see that the middleware can
 either handle low latency with high event frequency (e.g., $5ms$ with
-$100evt/min$) or high lantency with low event frequency (e.g., $100ms$ with
+$100evt/min$) or high latency with low event frequency (e.g., $100ms$ with
 $5evt/min$).
 %
 The color patterns in the table provide the necessary information to confront

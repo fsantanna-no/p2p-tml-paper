@@ -102,7 +102,7 @@ We now discuss the limitations of our work as follows...
 
 - 3.2.4. Middleware Summary:
 
-We discuss the middleware limitaions as follows:
+We discuss the middleware limitations as follows:
 contiguous unique identifiers, deterministic API, non-malicious peers, and
 static memory footprint.
 The text is too long to fit here and can be found in the paper or link above.
@@ -233,6 +233,10 @@ the middle of the network.
 This churn rate of 50% periodically creates full partitions in the peer-to-peer
 network, making the two opposites incommunicable for a considerable amount of
 time.
+Therefore, our unstructured design does provide the necessary mechanisms to
+adapt to such changes, since peers joins and leaves only impact direct
+neighbours.
+Our evaluation takes high churn rates into consideration.
 
 ### Comment A.9
 
@@ -317,10 +321,9 @@ To guide our discussion, we now explain how the text is organized at the
 beginning of Section 2.1:
 
 > <...>
-> "Figure 1 compares three selected works regarding these aspects. We now
-> discuss these works with respect to the three aspects, while comparing with
-> our approach. At the end of this section, we also provide initial details on
-> how our middleware works."
+> "Figure 1 compares three selected works regarding these aspects, which we
+> discuss and contrast with our approach next. At the end of this section, we
+> also provide initial details on how our middleware works.
 
 ### Comment J.5
 
@@ -357,14 +360,14 @@ Programming API" describing the P2P framework or, in other words, what we
 exactly mean by P2P:
 
 > "The peers form a dynamic unstructured peer-to-peer network [3], and
-> communicate only indirectly to each other. Events are flooded in the network
-> graph via gossiping, i.e.: when a peer generates an event, it communicates to
-> its neighbours, which communicate to their neighbours, and so on. Note that
-> all peers execute the exactly same application and middleware, with no
-> differences with respect to their roles and physical resources. Therefore, we
-> can describe our peer-to-peer network as follows: (a) all peers have the same
-> role and run the same software; (b) any peer can join or leave at any time;
-> (c) events are only communicated with direct neighbours."
+> communicate mostly indirectly to each other. Events are flooded in the
+> network graph via gossiping, i.e.: when a peer generates an event, it
+> communicates to its neighbours, which communicate to their neighbours, and so
+> on. Note that all peers execute the exactly same application and middleware,
+> with no differences with respect to their roles and physical resources.
+> Therefore, we can describe our peer-to-peer network as follows: (a) all peers
+> have the same role and run the same software; (b) any peer can join or leave
+> at any time; (c) events are only communicated with direct neighbours."
 
 ### Comment J.8
 
@@ -452,11 +455,13 @@ section:
 > case?
 
 The evaluation requires a synchronized global clock that can measure
-differences in the order of milliseconds.
+differences in the order of a few milliseconds.
+This can be done reliably in a single machine, but not trivially across the
+network with the precision that we needed.
 We use Linux's NetEm to emulate network latency, but do not consider other
 network challenges.
 That being said, latency is the only network dependent parameter that we
-evaluate.
+currently evaluate.
 
 ### Comment J.11
 
